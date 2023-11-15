@@ -52,16 +52,6 @@ class Edit_Task_Widget(QWidget):
         self.database_client = database_client
         self.editing = False
 
-
-class Edit_Task_Widget(QWidget):
-    task_done = pyqtSignal()
-
-    def __init__(self, database_client):
-        super().__init__()
-
-        self.database_client = database_client
-        self.editing = False
-
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             self.apply()

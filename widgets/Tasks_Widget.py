@@ -29,44 +29,43 @@ class Task_Widget(QWidget):
 
     def __init__(self, task, database_client, parent=None):
         super().__init__(parent)
-
         self.task = task
         self.database_client = database_client
 
+        # Create the main layout
         self.layout = QHBoxLayout()
-        self.setLayout(self.layout)
 
-        # Add an image thumbnail
-        if task.image_uri != "":
-            self.image_label = QLabel()
-            pixmap = QPixmap(task.image_uri)
-            pixmap = pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio)
+        # Create the left, middle, and right layouts
+        left_layout = QHBoxLayout()
+        middle_layout = QHBoxLayout()
+        right_layout = QHBoxLayout()
 
-            self.image_label.setPixmap(pixmap)
-            self.layout.addWidget(self.image_label)
-
-        # Add a due date label
-        self.due_date_label = QLabel(task.deadline)
-        self.layout.addWidget(self.due_date_label)
-
+        # Create and add the checkbox to the left layout
         self.checkbox = QCheckBox()
         self.checkbox.setChecked(self.task.completed)
         self.checkbox.stateChanged.connect(self.toggle_completed)
-        self.layout.addWidget(self.checkbox)
+        left_layout.addWidget(self.checkbox)
 
-        self.label = QLabel(self.task.description)
-        self.layout.addWidget(self.label)
+        # Create and add the label to the middle layout
+        if len(self.task.description) > 30:
+            ellipsis_description = self.task.description[:30] + "..."
+        else:
+            ellipsis_description = self.task.description
+        self.label = QLabel(ellipsis_description)
+        middle_layout.addWidget(self.label)
 
-        self.editButton = QPushButton("Edit", self)
-        self.editButton.clicked.connect(self.emit_edit_signal)
-        self.layout.addWidget(self.editButton)
+        # Create the edit and delete buttons and add them to the right layout
+        self.edit_button = QPushButton("Edit")
+        self.delete_button = QPushButton("Delete")
+        right_layout.addWidget(self.edit_button)
+        right_layout.addWidget(self.delete_button)
 
-        self.layout.addStretch()
+        # Add the left, middle, and right layouts to the main layout
+        self.layout.addLayout(left_layout)
+        self.layout.addLayout(middle_layout)
+        self.layout.addLayout(right_layout)
 
-        self.delete_button = QPushButton("x", self)
-        self.delete_button.setStyleSheet("color: red")
-        self.delete_button.clicked.connect(self.delete_task)
-        self.layout.addWidget(self.delete_button)
+        self.setLayout(self.layout)
 
     def update(self):
         # Update the due date label
@@ -108,51 +107,88 @@ class Tasks_Widget(QWidget):
 
     add_task_signal = pyqtSignal()
 
-    def __init__(self, database_client):
-        """
-        Initializes the Tasks_Widget.
+    class Tasks_Widget(QWidget):
+        def __init__(self, database_client):
+            super().__init__()
+            self.database_client = database_client
 
-        Args:
-        - database_client: A client for interacting with the database.
-        """
-        super().__init__()
-        self.database_client = database_client
+            # lazy loading variables
+            self.lazy_offset = 0
+            self.lazy_limit = 20
 
-        self.task_widgets = []
-        # Create a QTabWidget
-        self.tab_widget = QTabWidget()
+            self.task_widgets = []
 
-        # Create a QWidget for the scroll area content
-        self.content_widget_completed = QWidget()
-        self.content_widget_not_completed = QWidget()
+            # setup the ui
+            self.setup_ui()
 
-        if not self.content_widget_completed.layout():
-            self.content_widget_completed.setLayout(QVBoxLayout())
-        if not self.content_widget_not_completed.layout():
-            self.content_widget_not_completed.setLayout(QVBoxLayout())
+            # Load the initial tasks
+            self.load_more_tasks()
 
-        # Crea
-        # Create a QScrollArea and set its properties
-        self.scroll_area_completed = QScrollArea()
-        self.scroll_area_completed.setWidgetResizable(True)
-        self.scroll_area_completed.setWidget(self.content_widget_completed)
-        self.scroll_area_not_completed = QScrollArea()
-        self.scroll_area_not_completed.setWidgetResizable(True)
-        self.scroll_area_not_completed.setWidget(self.content_widget_not_completed)
+            # scroll to bottom
+            self.scroll_to_bottom()
 
-        # Add the scroll areas to the tab widget
-        self.tab_widget.addTab(self.scroll_area_completed, "Completed Tasks")
-        self.tab_widget.addTab(self.scroll_area_not_completed, "Not Completed Tasks")
+            # always scroll to bottom on tab change
+            self.tab_widget.currentChanged.connect(self.scroll_to_bottom)
 
-        # Set the default tab
-        self.tab_widget.setCurrentIndex(1)
+            # load initial tasks
+            self.reload_tasks()
 
-        # Create a QVBoxLayout for the main widget and add the tab widget to it
-        main_layout = QVBoxLayout(self)
-        main_layout.addWidget(self.tab_widget)
+        def setup_ui(self):
+            # Create a QTabWidget
+            self.tab_widget = QTabWidget()
 
-        self.tasks = self.database_client.get_all_tasks()
-        self.update_tasks()
+            # Create a QWidget for the scroll area content
+            self.content_widget_completed = QWidget()
+            self.content_widget_not_completed = QWidget()
+
+            if not self.content_widget_completed.layout():
+                self.content_widget_completed.setLayout(QVBoxLayout())
+            if not self.content_widget_not_completed.layout():
+                self.content_widget_not_completed.setLayout(QVBoxLayout())
+
+            # Create a QScrollArea and set its properties
+            self.scroll_area_completed = QScrollArea()
+            self.scroll_area_completed.setWidgetResizable(True)
+            self.scroll_area_completed.setWidget(self.content_widget_completed)
+            self.scroll_area_not_completed = QScrollArea()
+            self.scroll_area_not_completed.setWidgetResizable(True)
+            self.scroll_area_not_completed.setWidget(self.content_widget_not_completed)
+
+            # Add the scroll areas to the tab widget
+            self.tab_widget.addTab(self.scroll_area_completed, "Completed")
+            self.tab_widget.addTab(self.scroll_area_not_completed, "Not Completed")
+
+            # Set the default tab
+            self.tab_widget.setCurrentIndex(1)
+
+            # Create a QVBoxLayout for the main widget and add the tab widget to it
+            main_layout = QVBoxLayout(self)
+            main_layout.addWidget(self.tab_widget)
+
+    def load_more_tasks(self):
+        # If the scroll bar is at the top
+        if self.verticalScrollBar().value() == 0:
+            # query if we are in completed or non completed tab
+            completed = self.tab_widget.currentIndex() == 0
+
+            # Load more tasks from the database
+            tasks = self.database_client.lazy_load_tasks(
+                self.lazy_offset, self.lazy_limit
+            )
+            self.lazy_offset += len(tasks)
+
+            # Create a Task_Widget for each task and add it to the tasks layout
+            for task in tasks:
+                task_widget = Task_Widget(task, self.database_client)
+                self.tasks_layout.addWidget(task_widget)
+
+    def scroll_to_bottom(self):
+        self.scroll_area_completed.verticalScrollBar().setValue(
+            self.scroll_area_completed.verticalScrollBar().maximum()
+        )
+        self.scroll_area_not_completed.verticalScrollBar().setValue(
+            self.scroll_area_not_completed.verticalScrollBar().maximum()
+        )
 
     def emit_add_signal(self):
         """
@@ -160,36 +196,47 @@ class Tasks_Widget(QWidget):
         """
         self.add_task_signal.emit()
 
-    def update_tasks(self):
+    def add_tasks(self, tasks):
         """
-        Updates the list of tasks displayed in the widget.
+        Updates the list of tasks displayed in the widget by inserting the new lazy-loaded tasks at the top.
         """
-        self.tasks = self.database_client.get_all_tasks()
-        completed_tasks = [task for task in self.tasks if task.completed]
-        not_completed_tasks = [task for task in self.tasks if not task.completed]
+        completed_tasks = [task for task in tasks if task.completed]
+        not_completed_tasks = [task for task in tasks if not task.completed]
 
         # Sort the tasks by deadline
         completed_tasks.sort(key=lambda task: task.deadline)
         not_completed_tasks.sort(key=lambda task: task.deadline)
 
+        for task in completed_tasks:
+            task_widget = Task_Widget(task, database_client=self.database_client)
+            self.content_widget_completed.layout().insertWidget(0, task_widget)
+            self.task_widgets.append(task_widget)
+
+        for task in not_completed_tasks:
+            task_widget = Task_Widget(task, database_client=self.database_client)
+            self.content_widget_not_completed.layout().insertWidget(0, task_widget)
+            self.task_widgets.append(task_widget)
+
+    def reload_tasks(self):
+        """
+        Reloads tasks from the database and updates the widget.
+        """
+        self.lazy_offset = 0
+
+        # get first tasks from db
+        self.tasks = self.database_client.lazy_load_tasks(
+            offset=self.lazy_offset, limit=self.lazy_limit
+        )
+
+        # delete all tasks from the widget
+        for task_widget in self.task_widgets:
+            task_widget.deleteLater()
+
+        # clear the list of task widgets
         self.task_widgets.clear()
 
-        for i in reversed(range(self.content_widget_completed.layout().count())):
-            self.content_widget_completed.layout().itemAt(i).widget().setParent(None)
-
-        for task in completed_tasks:
-            task_widget = self.add_task(task, self.content_widget_completed.layout())
-            self.task_widgets.append(task_widget)
-
-        for i in reversed(range(self.content_widget_not_completed.layout().count())):
-            self.content_widget_not_completed.layout().itemAt(i).widget().setParent(
-                None
-            )
-        for task in not_completed_tasks:
-            task_widget = self.add_task(
-                task, self.content_widget_not_completed.layout()
-            )
-            self.task_widgets.append(task_widget)
+        # add the tasks to the widget
+        self.add_tasks(self.tasks)
 
     def add_task(self, task, layout):
         """

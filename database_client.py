@@ -86,6 +86,23 @@ class DatabaseClient(QObject):
             bool(task[4]),
         )
 
+    def count_tasks(self):
+        """
+        Count the total number of tasks in the database.
+        """
+        self.cur.execute("SELECT COUNT(*) FROM tasks")
+        return self.cur.fetchone()[0]
+
+    def lazy_load_tasks(self, offset, limit):
+        """
+        Load a specific number of tasks from the database starting from a specific offset.
+        """
+        self.cur.execute(
+            "SELECT * FROM tasks ORDER BY deadline ASC LIMIT ? OFFSET ?",
+            (limit, offset),
+        )
+        return [Task(*row) for row in self.cur.fetchall()]
+
     def add_task(self, new_task):
         """
         Adds a new task to the database.

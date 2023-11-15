@@ -11,6 +11,8 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QLineEdit,
     QInputDialog,
+    QProgressDialog,
+    QSplashScreen,
     QPushButton,
     QMessageBox,
     QApplication,
@@ -29,31 +31,17 @@ from PyQt6.QtWidgets import (
     QFrame,
     QSpacerItem,
     QSizePolicy,
+    QDialog,
     QStatusBar,
     QToolBar,
 )
 
 
-class Main_Window(QMainWindow):
-    """
-    The main window of the Todo App.
-
-    Attributes:
-    - database_client (DatabaseClient): The database client used to interact with the task database.
-    - tasks_widget (Tasks_Widget): The widget that displays the list of tasks.
-    - edit_task_widget (Edit_Task_Widget): The widget used to create or edit a task.
-    - stacked_widget (QStackedWidget): The widget that contains both the tasks_widget and the edit_task_widget.
-    - addButton (QPushButton): The button used to add a new task.
-    - task_widgets (list): A list of all the task widgets displayed in the tasks_widget.
-    - progress_bar (QProgressBar): The progress bar displayed at the bottom of the window.
-    """
-
-    def __init__(self):
+class Password_Dialog(QDialog):
+    def __init__(self, db_name):
         super().__init__()
-
-        db_name = "todo.db"
-
-        if os.path.exists(db_name):
+        self.db_name = db_name
+        if os.path.exists(self.db_name):
             while True:
                 key, ok = QInputDialog.getText(
                     self,
@@ -64,7 +52,7 @@ class Main_Window(QMainWindow):
                 if not ok:
                     sys.exit()
                 try:
-                    self.database_client = DatabaseClient(key, db_name)
+                    self.database_client = DatabaseClient(key, self.db_name)
                     break
                 except DatabaseError:
                     QMessageBox.critical(
@@ -98,11 +86,28 @@ class Main_Window(QMainWindow):
                 if key == key2:
                     self.database_client = DatabaseClient(key, db_name)
                     break
-                else:
-                    QMessageBox.critical(
-                        self, "Error", "Encryption keys do not match. Please try again."
-                    )
+                QMessageBox.critical(
+                    self, "Error", "Encryption keys do not match. Please try again."
+                )
 
+
+class Main_Window(QMainWindow):
+    """
+    The main window of the Todo App.
+
+    Attributes:
+    - database_client (DatabaseClient): The database client used to interact with the task database.
+    - tasks_widget (Tasks_Widget): The widget that displays the list of tasks.
+    - edit_task_widget (Edit_Task_Widget): The widget used to create or edit a task.
+    - stacked_widget (QStackedWidget): The widget that contains both the tasks_widget and the edit_task_widget.
+    - addButton (QPushButton): The button used to add a new task.
+    - task_widgets (list): A list of all the task widgets displayed in the tasks_widget.
+    - progress_bar (QProgressBar): The progress bar displayed at the bottom of the window.
+    """
+
+    def __init__(self, database_client):
+        super().__init__()
+        self.database_client = database_client
         self.setWindowTitle("Todo App")
 
         self.tasks_widget = Tasks_Widget(self.database_client)
@@ -168,7 +173,8 @@ class Main_Window(QMainWindow):
         for task_widget in self.task_widgets:
             task_widget.edit_task_signal.connect(self.add_edit_task)
 
-        self.database_client.task_modified.connect(self.update_tasks)
+        self.database_client.task_added.connect(self.added_task)
+        self.database_client.task_edited.connect(self.edited_task)
 
         # Change the cursor to a pointer when hovering over the button
         self.addButton.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -176,26 +182,11 @@ class Main_Window(QMainWindow):
         # Position the button in the lower right corner
         self.addButton.setGeometry(self.width() - 60, self.height() - 60, 50, 50)
 
-        # Define the progress bar
-        self.progress_bar = QProgressBar(self)
-        self.progress_bar.setFixedHeight(10)
-        self.progress_bar.setGeometry(0, self.height() - 10, self.width(), 10)
-        self.progress_bar.setStyleSheet(
-            """
-            QProgressBar {
-                border-radius: 5px;
-                background-color: green;
-            }
-        """
-        )
-        self.progress_bar.hide()
-
     def resizeEvent(self, event):
         # Update the position of the button when the window is resized
-        self.progress_bar.setGeometry(0, self.height() - 10, self.width(), 10)
         self.addButton.setGeometry(self.width() - 60, self.height() - 60, 50, 50)
 
-    def update_tasks(self):
+    def update_task_signals(self):
         # Disconnect old signals
         for task_widget in self.task_widgets:
             try:
@@ -210,27 +201,17 @@ class Main_Window(QMainWindow):
         for task_widget in self.task_widgets:
             task_widget.edit_task_signal.connect(self.add_edit_task)
 
-        self.tasks_widget.update_tasks()
+    def added_task(self):
+        # update the edit button signals
+        self.update_task_signals()
 
-    def updateProgressBar(
-        self, visible=False, curr_value=0, min_value=0, max_value=100
-    ):
-        """
-        Updates the progress bar displayed at the bottom of the window.
+        # reload the tasks widget.
+        self.tasks_widget.reload_tasks()
 
-        Args:
-        - visible (bool): Whether to show or hide the progress bar.
-        - curr_value (int): The current value of the progress bar.
-        - min_value (int): The minimum value of the progress bar.
-        - max_value (int): The maximum value of the progress bar.
-        """
-        if visible:
-            self.progress_bar.show()
-            self.progress_bar.setValue(curr_value)
-            self.progress_bar.setMinimum(min_value)
-            self.progress_bar.setMaximum(max_value)
-        else:
-            self.progress_bar.hide()
+    def edited_task(self):
+        # update the widget values
+        # of existing task widgets
+        self.tasks_widget.update_widget_values()
 
     def import_tasks(self):
         """
@@ -324,7 +305,26 @@ class Main_Window(QMainWindow):
 
 app = QApplication(sys.argv)
 
-window = Main_Window()
+# ask for password
+db_name = "tasks.db"
+password_dialog = Password_Dialog(db_name)
+database_client = password_dialog.database_client
+
+# show loading spinner
+progress_dialog = QProgressDialog("Loading...", "Cancel", 0, 0)
+progress_dialog.setWindowTitle("Please Wait")
+progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+progress_dialog.show()
+
+# Process pending events to ensure the spinner is shown
+app.processEvents()
+
+# start main window
+window = Main_Window(database_client)
+
+# close loading spinner
+progress_dialog.close()
+
 window.show()
 
 app.exec()
