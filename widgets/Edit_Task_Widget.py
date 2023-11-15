@@ -23,6 +23,37 @@ from PyQt6.QtCore import Qt, QDate, pyqtSignal
 
 
 class Edit_Task_Widget(QWidget):
+    """
+    A widget for creating or editing a task.
+
+    Attributes:
+    - task_done (pyqtSignal): A signal emitted when the task is created or edited.
+    - database_client: A client for interacting with the task database.
+    - editing (bool): A flag indicating whether the widget is in editing mode.
+    - new_task (Task): The task being created or edited.
+    - image_label (QLabel): A label for displaying the task image.
+    - description_edit (QLineEdit): A line edit for entering the task description.
+    - due_date_edit (QDateEdit): A date edit for entering the task due date.
+    - remove_image_button (QPushButton): A button for removing the task image.
+    - add_change_image_button (QPushButton): A button for adding or changing the task image.
+    """
+
+    task_done = pyqtSignal()
+
+    def __init__(self, database_client):
+        """
+        Initializes the Edit_Task_Widget.
+
+        Args:
+        - database_client: A client for interacting with the task database.
+        """
+        super().__init__()
+
+        self.database_client = database_client
+        self.editing = False
+
+
+class Edit_Task_Widget(QWidget):
     task_done = pyqtSignal()
 
     def __init__(self, database_client):
@@ -30,7 +61,6 @@ class Edit_Task_Widget(QWidget):
 
         self.database_client = database_client
         self.editing = False
-        print("init")
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
@@ -83,16 +113,13 @@ class Edit_Task_Widget(QWidget):
         layout.addWidget(button_box, 4, 0, 1, 2)
 
     def create_task(self):
-        print("create task")
         self.new_task = Task()
         self.setWindowTitle("Create Task")
         self.setup_ui()
 
     def edit_task(self, task_uuid):
-        print("edit task")
         self.editing = True
         self.new_task = copy.copy(self.database_client.get_task(task_uuid))
-        print("Before: " + json.dumps(self.new_task.__dict__, indent=4))
         self.setWindowTitle("Edit Task")
         self.setup_ui()
 
@@ -151,7 +178,6 @@ class Edit_Task_Widget(QWidget):
         self.reset_fields()
 
     def reset_fields(self):
-        print("resetting input fields")
         tmp_task = Task()
         self.description_edit.setText(tmp_task.description)
         self.due_date_edit.setDate(QDate.fromString(tmp_task.deadline, "yyyy-MM-dd"))

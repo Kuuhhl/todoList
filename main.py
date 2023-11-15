@@ -1,5 +1,6 @@
 import sys
-import copy
+import os
+from pysqlcipher3.dbapi2 import DatabaseError
 from database_client import DatabaseClient
 from widgets.Edit_Task_Widget import Edit_Task_Widget
 from widgets.Tasks_Widget import Tasks_Widget
@@ -8,6 +9,8 @@ from PyQt6.QtGui import QPixmap, QAction, QIcon, QFont
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtWidgets import (
     QProgressBar,
+    QLineEdit,
+    QInputDialog,
     QPushButton,
     QMessageBox,
     QApplication,
@@ -32,10 +35,74 @@ from PyQt6.QtWidgets import (
 
 
 class Main_Window(QMainWindow):
+    """
+    The main window of the Todo App.
+
+    Attributes:
+    - database_client (DatabaseClient): The database client used to interact with the task database.
+    - tasks_widget (Tasks_Widget): The widget that displays the list of tasks.
+    - edit_task_widget (Edit_Task_Widget): The widget used to create or edit a task.
+    - stacked_widget (QStackedWidget): The widget that contains both the tasks_widget and the edit_task_widget.
+    - addButton (QPushButton): The button used to add a new task.
+    - task_widgets (list): A list of all the task widgets displayed in the tasks_widget.
+    - progress_bar (QProgressBar): The progress bar displayed at the bottom of the window.
+    """
+
     def __init__(self):
         super().__init__()
 
-        self.database_client = DatabaseClient()
+        db_name = "todo.db"
+
+        if os.path.exists(db_name):
+            while True:
+                key, ok = QInputDialog.getText(
+                    self,
+                    "Enter Encryption Key",
+                    "Enter the encryption key for the database:",
+                    echo=QLineEdit.EchoMode.Password,
+                )
+                if not ok:
+                    sys.exit()
+                try:
+                    self.database_client = DatabaseClient(key, db_name)
+                    break
+                except DatabaseError:
+                    QMessageBox.critical(
+                        self, "Error", "Incorrect encryption key. Please try again."
+                    )
+        else:
+            while True:
+                key, ok = QInputDialog.getText(
+                    self,
+                    "Enter Encryption Key",
+                    "Enter an new encryption key for the database:",
+                    echo=QLineEdit.EchoMode.Password,
+                )
+                if not ok:
+                    sys.exit()
+                if len(key) < 1:
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        "Encryption key cannot be empty. Please try again.",
+                    )
+                    continue
+                key2, ok = QInputDialog.getText(
+                    self,
+                    "Confirm Encryption Key",
+                    "Confirm the encryption key for the database:",
+                    echo=QLineEdit.EchoMode.Password,
+                )
+                if not ok:
+                    sys.exit()
+                if key == key2:
+                    self.database_client = DatabaseClient(key, db_name)
+                    break
+                else:
+                    QMessageBox.critical(
+                        self, "Error", "Encryption keys do not match. Please try again."
+                    )
+
         self.setWindowTitle("Todo App")
 
         self.tasks_widget = Tasks_Widget(self.database_client)
@@ -97,7 +164,7 @@ class Main_Window(QMainWindow):
         self.addButton.clicked.connect(self.add_edit_task)
         self.tasks_widget.add_task_signal.connect(self.add_edit_task)
 
-        self.task_widgets = copy.copy(self.tasks_widget.task_widgets)
+        self.task_widgets = self.tasks_widget.task_widgets
         for task_widget in self.task_widgets:
             task_widget.edit_task_signal.connect(self.add_edit_task)
 
@@ -129,22 +196,34 @@ class Main_Window(QMainWindow):
         self.addButton.setGeometry(self.width() - 60, self.height() - 60, 50, 50)
 
     def update_tasks(self):
-        # disconnect old signals
+        # Disconnect old signals
         for task_widget in self.task_widgets:
-            task_widget.edit_task_signal.disconnect()
+            try:
+                task_widget.edit_task_signal.disconnect()
+            except TypeError:
+                pass
 
-        # create new signals
-        self.task_widgets = copy.copy(self.tasks_widget.task_widgets)
+        # Update the task widgets
+        self.task_widgets = self.tasks_widget.task_widgets
+
+        # Connect new signals
         for task_widget in self.task_widgets:
             task_widget.edit_task_signal.connect(self.add_edit_task)
 
         self.tasks_widget.update_tasks()
 
-        print(str(len(self.task_widgets)) + " tasks right now")
-
     def updateProgressBar(
         self, visible=False, curr_value=0, min_value=0, max_value=100
     ):
+        """
+        Updates the progress bar displayed at the bottom of the window.
+
+        Args:
+        - visible (bool): Whether to show or hide the progress bar.
+        - curr_value (int): The current value of the progress bar.
+        - min_value (int): The minimum value of the progress bar.
+        - max_value (int): The maximum value of the progress bar.
+        """
         if visible:
             self.progress_bar.show()
             self.progress_bar.setValue(curr_value)
@@ -154,7 +233,9 @@ class Main_Window(QMainWindow):
             self.progress_bar.hide()
 
     def import_tasks(self):
-        print("called import tasks")
+        """
+        Imports tasks from a JSON file.
+        """
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Import Tasks", "", "JSON Files (*.json)"
         )
@@ -163,7 +244,6 @@ class Main_Window(QMainWindow):
                 task_num_before = len(self.database_client.get_all_tasks())
                 self.database_client.import_from_file(file_path)
                 self.database_client.update_progress_bar.connect(self.updateProgressBar)
-                print("imported")
                 QMessageBox.information(
                     self,
                     "Import Tasks",
@@ -176,6 +256,9 @@ class Main_Window(QMainWindow):
                 )
 
     def export_tasks(self, s):
+        """
+        Exports tasks to a JSON file.
+        """
         file_path, _ = QFileDialog.getSaveFileName(
             self, "Export Tasks", "", "JSON Files (*.json)"
         )
@@ -191,6 +274,12 @@ class Main_Window(QMainWindow):
                 )
 
     def clear_tasks(self, s):
+        """
+        Clears all tasks from the database.
+        """
+        if len(self.database_client.get_all_tasks()) == 0:
+            QMessageBox.information(self, "Clear Tasks", "There are no tasks to clear.")
+            return
         if (
             QMessageBox.question(
                 self,
@@ -203,9 +292,18 @@ class Main_Window(QMainWindow):
             self.database_client.clear_all()
 
     def about(self, s):
+        """
+        Displays information about the application.
+        """
         About_Dialog().exec()
 
     def add_edit_task(self, task_uuid=None):
+        """
+        Displays the edit_task_widget to create or edit a task.
+
+        Args:
+        - task_uuid (str): The UUID of the task to edit. If None, a new task will be created.
+        """
         self.edit_task_widget.task_done.connect(self.task_done)
         self.stacked_widget.setCurrentWidget(self.edit_task_widget)
 
@@ -217,6 +315,9 @@ class Main_Window(QMainWindow):
         self.addButton.hide()
 
     def task_done(self):
+        """
+        Called when a task has been created or edited. Returns to the tasks_widget and shows the addButton.
+        """
         self.stacked_widget.setCurrentWidget(self.tasks_widget)
         self.addButton.show()
 

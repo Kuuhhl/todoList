@@ -91,9 +91,30 @@ class Task_Widget(QWidget):
 
 
 class Tasks_Widget(QWidget):
+    """
+    A widget that displays a list of tasks, separated into two tabs: completed tasks and not completed tasks.
+
+    Attributes:
+    - add_task_signal (pyqtSignal): A signal emitted when the user wants to add a new task.
+    - database_client: A client for interacting with the database.
+    - task_widgets (list): A list of Task_Widget objects representing the tasks displayed in the widget.
+    - tab_widget (QTabWidget): A tab widget containing two tabs: one for completed tasks and one for not completed tasks.
+    - content_widget_completed (QWidget): A widget containing the completed tasks.
+    - content_widget_not_completed (QWidget): A widget containing the not completed tasks.
+    - scroll_area_completed (QScrollArea): A scroll area containing the completed tasks.
+    - scroll_area_not_completed (QScrollArea): A scroll area containing the not completed tasks.
+    - tasks (list): A list of Task objects representing all the tasks in the database.
+    """
+
     add_task_signal = pyqtSignal()
 
     def __init__(self, database_client):
+        """
+        Initializes the Tasks_Widget.
+
+        Args:
+        - database_client: A client for interacting with the database.
+        """
         super().__init__()
         self.database_client = database_client
 
@@ -134,9 +155,15 @@ class Tasks_Widget(QWidget):
         self.update_tasks()
 
     def emit_add_signal(self):
+        """
+        Emits the add_task_signal.
+        """
         self.add_task_signal.emit()
 
     def update_tasks(self):
+        """
+        Updates the list of tasks displayed in the widget.
+        """
         self.tasks = self.database_client.get_all_tasks()
         completed_tasks = [task for task in self.tasks if task.completed]
         not_completed_tasks = [task for task in self.tasks if not task.completed]
@@ -165,6 +192,16 @@ class Tasks_Widget(QWidget):
             self.task_widgets.append(task_widget)
 
     def add_task(self, task, layout):
+        """
+        Adds a task to the widget.
+
+        Args:
+        - task: A Task object representing the task to be added.
+        - layout: The layout to which the task widget should be added.
+
+        Returns:
+        - The Task_Widget object representing the added task.
+        """
         task_widget = Task_Widget(task, self.database_client, self)
         layout.addWidget(task_widget)
         return task_widget

@@ -3,6 +3,23 @@ from datetime import datetime
 
 
 class Task:
+    """
+    A class representing a task in a todo list.
+
+    Attributes:
+    -----------
+    uuid : str
+        Unique identifier for the task.
+    image_uri : str
+        URI for the image associated with the task.
+    description : str
+        Description of the task.
+    deadline : str
+        Deadline for the task in the format '%Y-%m-%d'.
+    completed : bool
+        Indicates whether the task is completed or not.
+    """
+
     def __init__(
         self,
         uuid_=None,
@@ -20,4 +37,7 @@ class Task:
         self.completed = completed
 
     def toggle_completed(self):
+        """
+        Toggles the completed status of the task.
+        """
         self.completed = not self.completed
