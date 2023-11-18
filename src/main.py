@@ -186,6 +186,13 @@ class Main_Window(QMainWindow):
         file_menu = menu.addMenu("&File")
 
         # import button
+        button_action = QAction("&Create new Task", self)
+        button_action.setStatusTip("Create new Task")
+        button_action.triggered.connect(self.add_edit_task)
+        file_menu.addAction(button_action)
+        file_menu.addSeparator()
+
+        # import button
         button_action = QAction("&Import Tasks", self)
         button_action.setStatusTip("import tasks from .json file")
         button_action.triggered.connect(self.import_tasks)
@@ -344,6 +351,7 @@ shared_state = Shared_State(database_client)
 
 # start main window
 window = Main_Window(shared_state)
+window.resize(800, 600)
 
 
 # Set the window icon
