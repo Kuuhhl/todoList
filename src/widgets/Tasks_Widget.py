@@ -75,6 +75,12 @@ class Task_Widget(QWidget):
         self.due_badge.hide()
         left_layout.addWidget(self.due_badge)
 
+        # Create the image label
+        self.image_label = QLabel()
+        self.image_label.setStyleSheet("border-radius: 10px;")
+        middle_layout.addWidget(self.image_label)
+        self.image_label.hide()
+
         # Create and add the label to the middle layout
         self.label = QLabel()
         self.label.setStyleSheet("font-size: 20px;")
@@ -110,6 +116,19 @@ class Task_Widget(QWidget):
             self.due_badge.show()
         else:
             self.due_badge.hide()
+
+        if self.task.image_uri != "":
+            image = QPixmap(self.task.image_uri)
+            image = image.scaled(
+                100,
+                100,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+            self.image_label.setPixmap(image)
+            self.image_label.show()
+        else:
+            self.image_label.hide()
 
         if len(self.task.description) > 30:
             self.label.setText(self.task.description[:30] + "...")

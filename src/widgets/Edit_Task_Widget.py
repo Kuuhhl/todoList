@@ -52,9 +52,10 @@ class Edit_Task_Widget(QWidget):
         image_layout.addLayout(button_layout)
 
         self.add_change_image_button = QPushButton(
-            "Add Image" if self.new_task.image_uri is None else "Change Image"
+            "Add Image" if self.new_task.image_uri == "" else "Change Image"
         )
         self.add_change_image_button.clicked.connect(self.add_change_image)
+        button_layout.addWidget(self.add_change_image_button)
 
         layout.addWidget(QLabel("Description:"), 2, 0)
         self.description_edit = QLineEdit(self.new_task.description)
