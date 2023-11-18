@@ -23,33 +23,11 @@ from PyQt6.QtCore import Qt, QDate, pyqtSignal
 
 
 class Edit_Task_Widget(QWidget):
-    """
-    A widget for creating or editing a task.
-
-    Attributes:
-    - task_done (pyqtSignal): A signal emitted when the task is created or edited.
-    - database_client: A client for interacting with the task database.
-    - editing (bool): A flag indicating whether the widget is in editing mode.
-    - new_task (Task): The task being created or edited.
-    - image_label (QLabel): A label for displaying the task image.
-    - description_edit (QLineEdit): A line edit for entering the task description.
-    - due_date_edit (QDateEdit): A date edit for entering the task due date.
-    - remove_image_button (QPushButton): A button for removing the task image.
-    - add_change_image_button (QPushButton): A button for adding or changing the task image.
-    """
-
     task_done = pyqtSignal()
 
-    def __init__(self, database_client):
-        """
-        Initializes the Edit_Task_Widget.
-
-        Args:
-        - database_client: A client for interacting with the task database.
-        """
+    def __init__(self, shared_state):
         super().__init__()
-
-        self.database_client = database_client
+        self.shared_state = shared_state
         self.editing = False
 
     def keyPressEvent(self, event):
@@ -84,7 +62,7 @@ class Edit_Task_Widget(QWidget):
 
         layout.addWidget(QLabel("Due Date:"), 3, 0)
         self.due_date_edit = QDateEdit(
-            QDate.fromString(self.new_task.deadline, "yyyy-MM-dd")
+            QDate.fromString(self.new_task.due_date, "yyyy-MM-dd")
         )
         layout.addWidget(self.due_date_edit, 3, 1)
 
@@ -109,7 +87,7 @@ class Edit_Task_Widget(QWidget):
 
     def edit_task(self, task_uuid):
         self.editing = True
-        self.new_task = copy.copy(self.database_client.get_task(task_uuid))
+        self.new_task = copy.copy(self.shared_state.database_client.get_task(task_uuid))
         self.setWindowTitle("Edit Task")
         self.setup_ui()
 
@@ -139,30 +117,30 @@ class Edit_Task_Widget(QWidget):
     def apply(self):
         # Extract input fields
         description = self.description_edit.text()
-        deadline = self.due_date_edit.date().toString("yyyy-MM-dd")
+        due_date = self.due_date_edit.date().toString("yyyy-MM-dd")
         image_uri = getattr(self, "image_path", "")
 
         if self.editing:
             # Update the task fields
             self.new_task.description = description
-            self.new_task.deadline = deadline
+            self.new_task.due_date = due_date
             self.new_task.image_uri = image_uri
 
             # Edit the task
-            self.database_client.edit_task(
+            self.shared_state.database_client.edit_task(
                 task_uuid=self.new_task.uuid, new_task=self.new_task
             )
         else:
             # Create a new task
             task = Task(
                 description=description,
-                deadline=deadline,
+                due_date=due_date,
                 image_uri=image_uri,
-                completed=False,
+                complete=False,
             )
 
             # Add the task
-            self.database_client.add_task(task)
+            self.shared_state.database_client.add_task(task)
 
         self.task_done.emit()
         self.reset_fields()
@@ -170,7 +148,7 @@ class Edit_Task_Widget(QWidget):
     def reset_fields(self):
         tmp_task = Task()
         self.description_edit.setText(tmp_task.description)
-        self.due_date_edit.setDate(QDate.fromString(tmp_task.deadline, "yyyy-MM-dd"))
+        self.due_date_edit.setDate(QDate.fromString(tmp_task.due_date, "yyyy-MM-dd"))
         self.image_path = tmp_task.image_uri
         self.image_label.clear()
         self.image_label.setVisible(False)
