@@ -35,7 +35,7 @@ class DatabaseClient(QObject):
             cur = conn.cursor()
 
         cur.execute(
-            "create table if not exists todo (uuid text primary key, image_uri text, task_desc text, due_date datetime, complete boolean)"
+            "create table if not exists todo (uuid text primary key, image_uri text, task_desc text, due_date text, complete integer)"
         )
         return conn, cur
 
@@ -62,7 +62,9 @@ class DatabaseClient(QObject):
         if complete is None:
             self.cur.execute("SELECT COUNT(*) FROM todo")
         else:
-            self.cur.execute("SELECT COUNT(*) FROM todo WHERE complete=?", (complete,))
+            self.cur.execute(
+                "SELECT COUNT(*) FROM todo WHERE complete=?", (int(complete),)
+            )
         return self.cur.fetchone()[0]
 
     def lazy_load_tasks(self, offset, limit, complete=None):
@@ -84,21 +86,20 @@ class DatabaseClient(QObject):
                 new_task.image_uri,
                 new_task.description,
                 new_task.due_date,
-                new_task.complete,
+                int(new_task.complete),
             ),
         )
         self.conn.commit()
         self.added_task.emit(new_task.uuid)
 
     def edit_task(self, edited_task):
-        print(edited_task.__dict__)
         self.cur.execute(
             "update todo set image_uri=?, task_desc=?, due_date=?, complete=? where uuid=?",
             (
                 edited_task.image_uri,
                 edited_task.description,
                 edited_task.due_date,
-                edited_task.complete,
+                int(edited_task.complete),
                 edited_task.uuid,
             ),
         )
@@ -140,7 +141,7 @@ class DatabaseClient(QObject):
                 task.image_uri,
                 task.description,
                 task.due_date,
-                task.complete,
+                int(task.complete),
             )
             for task in task_objects
         ]

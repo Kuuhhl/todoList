@@ -17,4 +17,4 @@ class Task:
         self.description = description
         self.due_date = due_date
         self.image_uri = image_uri
-        self.complete = complete
+        self.complete = bool(complete)

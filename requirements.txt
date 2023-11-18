@@ -2,3 +2,4 @@ PyQt6
 win32mica
 darkdetect
 fontawesome
+pysqlcipher3
