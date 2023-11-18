@@ -1,8 +1,6 @@
 import json
 import os
-
-# from pysqlcipher3 import dbapi2 as sqlite3
-import sqlite3
+from pysqlcipher3 import dbapi2 as sqlite3
 from PyQt6.QtCore import pyqtSignal, QObject
 from task import Task
 
@@ -26,13 +24,13 @@ class DatabaseClient(QObject):
         if os.path.exists(self.db_name):
             try:
                 conn = sqlite3.connect(self.db_name)
-                # conn.execute(f"PRAGMA key = '{self.key}';")
+                conn.execute(f"PRAGMA key = '{self.key}';")
                 cur = conn.cursor()
             except sqlite3.DatabaseError as exc:
                 raise (sqlite3.DatabaseError("Incorrect encryption key")) from exc
         else:
             conn = sqlite3.connect(self.db_name)
-            # conn.execute(f"PRAGMA key = '{self.key}';")
+            conn.execute(f"PRAGMA key = '{self.key}';")
             cur = conn.cursor()
 
         cur.execute(

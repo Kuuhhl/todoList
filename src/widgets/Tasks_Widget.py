@@ -1,28 +1,17 @@
 from PyQt6.QtCore import Qt, pyqtSignal
+import os
 from datetime import datetime
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import QPushButton
 from PyQt6.QtWidgets import (
-    QFrame,
     QScrollArea,
-    QApplication,
-    QMainWindow,
     QMessageBox,
-    QSplitter,
-    QTextEdit,
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
-    QListWidget,
-    QListWidgetItem,
     QLabel,
     QTabWidget,
     QCheckBox,
-    QFrame,
-    QSpacerItem,
-    QSizePolicy,
-    QStatusBar,
-    QToolBar,
 )
 
 
@@ -117,7 +106,7 @@ class Task_Widget(QWidget):
         else:
             self.due_badge.hide()
 
-        if self.task.image_uri != "":
+        if self.task.image_uri != "" and os.path.exists(self.task.image_uri):
             image = QPixmap(self.task.image_uri)
             image = image.scaled(
                 100,
@@ -136,8 +125,6 @@ class Task_Widget(QWidget):
             self.label.setText(self.task.description)
 
     def emit_edit_task_signal(self):
-        print("emitting edit task signal")
-        print(id(self))
         self.edit_task_signal.emit(self.task.uuid)
 
     def toggle_complete(self, state):
@@ -217,15 +204,12 @@ class Tasks_Widget(QWidget):
         self.scroll_area_incomplete = QScrollArea()
         self.scroll_area_incomplete.setWidgetResizable(True)
         self.scroll_area_incomplete.setWidget(self.content_widget_incomplete)
+
         # lazy loading variables
         self.scroll_area_complete.lazy_offset = 0
         self.scroll_area_complete.lazy_limit = 20
         self.scroll_area_incomplete.lazy_offset = 0
         self.scroll_area_incomplete.lazy_limit = 20
-
-        # complete attributes
-        self.scroll_area_complete.complete = True
-        self.scroll_area_incomplete.complete = False
 
         # Add the scroll areas to the tab widget
         self.tab_widget.addTab(self.scroll_area_complete, "Finished")
@@ -246,7 +230,14 @@ class Tasks_Widget(QWidget):
             for i in range(layout.count()):
                 task_widget = layout.itemAt(i).widget()
                 if task_widget and task_widget.task.uuid == new_task.uuid:
+                    complete_toggled = False
+                    if task_widget.task.complete != new_task.complete:
+                        complete_toggled = True
                     task_widget.task = new_task
+                    if complete_toggled:
+                        self.delete_task_widget(task_widget)
+                        self.shared_state.task_widgets.delete(task_widget.task.uuid)
+                        self.insert_task(new_task)
                     return
 
     def delete_task_widget(self, task_uuid):
@@ -278,7 +269,7 @@ class Tasks_Widget(QWidget):
             existing_task_widget = layout.itemAt(i).widget()
             if (
                 existing_task_widget
-                and existing_task_widget.task.due_date > task.due_date
+                and existing_task_widget.task.due_date < task.due_date
             ):
                 break
             index += 1
@@ -291,19 +282,25 @@ class Tasks_Widget(QWidget):
     def load_more_tasks(self, all_tabs=False):
         tasks = []
         if all_tabs:
-            for scroll_area in [self.scroll_area_complete, self.scroll_area_incomplete]:
-                tasks += self.shared_state.database_client.lazy_load_tasks(
-                    scroll_area.lazy_offset,
-                    scroll_area.lazy_limit,
-                    scroll_area.complete,
-                )
-                scroll_area.lazy_offset += len(tasks)
+            complete_tasks = self.shared_state.database_client.lazy_load_tasks(
+                self.scroll_area_complete.lazy_offset,
+                self.scroll_area_complete.lazy_limit,
+                True,
+            )
+            self.scroll_area_complete.lazy_offset += len(complete_tasks)
+            incomplete_tasks = self.shared_state.database_client.lazy_load_tasks(
+                self.scroll_area_incomplete.lazy_offset,
+                self.scroll_area_incomplete.lazy_limit,
+                False,
+            )
+            self.scroll_area_incomplete.lazy_offset += len(incomplete_tasks)
+            tasks = complete_tasks + incomplete_tasks
         else:
             current_tab = self.tab_widget.currentWidget()
             tasks = self.shared_state.database_client.lazy_load_tasks(
                 current_tab.lazy_offset,
                 current_tab.lazy_limit,
-                current_tab.complete,
+                True if self.tab_widget.currentIndex() == 0 else False,
             )
             current_tab.lazy_offset += len(tasks)
 
@@ -380,6 +377,7 @@ class Tasks_Widget(QWidget):
         # clear the list of task widgets
         self.__clear_layout(self.content_widget_complete.layout())
         self.__clear_layout(self.content_widget_incomplete.layout())
+        self.shared_state.task_widgets.clear()
 
         # load the tasks
         self.load_more_tasks()

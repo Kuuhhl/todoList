@@ -112,7 +112,7 @@ class Shared_State(QObject):
 
     def handle_edited_task(self, new_task):
         print("handle_edited_task")
-        pass
+        self.reload_signal.emit()
 
     def handle_deleted_task(self, task_uuid):
         print("handle_deleted_task")
