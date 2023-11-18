@@ -21,28 +21,36 @@ from PyQt6.QtWidgets import (
 )
 
 
-class Task_Widgets:
+class Task_Widgets(QObject):
+    edit_task_signal = pyqtSignal(str)
+
     def __init__(self):
+        super().__init__()
         self.complete = []
         self.incomplete = []
 
-    def add(self, task_objs):
-        if not isinstance(task_objs, list):
-            task_objs = [task_objs]
+    def forward_edit_task_signal(self, task_uuid):
+        print("forwarding from task widgets")
+        self.edit_task_signal.emit(task_uuid)
 
-        for task_obj in task_objs:
-            task_widget = Task_Widget(task_obj, shared_state)
+    def add(self, task_widgets):
+        if not isinstance(task_widgets, list):
+            task_widgets = [task_widgets]
 
-            if task_obj.complete:
+        for task_widget in task_widgets:
+            task_widget.edit_task_signal.connect(self.forward_edit_task_signal)
+
+            if task_widget.task.complete:
                 self.complete.append(task_widget)
-                self.complete.sort(
-                    key=lambda task_widget: task_widget.task.due_date, reverse=True
-                )
             else:
                 self.incomplete.append(task_widget)
-                self.incomplete.sort(
-                    key=lambda task_widget: task_widget.task.due_date, reverse=True
-                )
+
+        self.complete.sort(
+            key=lambda task_widget: task_widget.task.due_date, reverse=True
+        )
+        self.incomplete.sort(
+            key=lambda task_widget: task_widget.task.due_date, reverse=True
+        )
 
     def edit(self, new_task):
         # replace old task with new task
@@ -56,6 +64,10 @@ class Task_Widgets:
         for task_list in [self.complete, self.incomplete]:
             for task_widget in task_list:
                 if task_widget.task.uuid == task_uuid:
+                    try:
+                        task_widget.edit_task_signal.disconnect()
+                    except:
+                        pass
                     task_list.remove(task_widget)
                     break
 
@@ -66,10 +78,13 @@ class Task_Widgets:
 
 class Shared_State(QObject):
     reload_signal = pyqtSignal()
+    add_edit_task_signal = pyqtSignal(str)
 
     def __init__(self, database_client):
         super().__init__()
         self.database_client = database_client
+
+        # represents the currently loaded task widgets
         self.task_widgets = Task_Widgets()
 
         # connect signals from database
@@ -78,34 +93,38 @@ class Shared_State(QObject):
         self.database_client.edited_task.connect(self.handle_edited_task)
         self.database_client.deleted_task.connect(self.handle_deleted_task)
         self.database_client.cleared_tasks.connect(self.handle_cleared_tasks)
+        self.database_client.loaded_tasks.connect(self.handle_loaded_tasks)
 
-    def handle_added_task(self, task_uuid):
-        task_obj = self.database_client.get_task(task_uuid)
-        self.task_widgets.add(task_obj)
-        self.reload_signal.emit()
+        # forward signals from task widget
+        self.task_widgets.edit_task_signal.connect(self.forward_edit_signal)
 
-    def handle_edited_task(self, task_uuid):
-        new_task = self.database_client.get_task(task_uuid)
-        self.task_widgets.edit(new_task)
-        self.reload_signal.emit()
+    def forward_edit_signal(self, task_uuid):
+        print("forwarfing from shared state")
+        self.add_edit_task_signal.emit(task_uuid)
+
+    def handle_loaded_tasks(self, tasks):
+        print("handle_loaded_tasks")
+        pass
+
+    def handle_added_task(self, task):
+        print("handle_added_task")
+        pass
+
+    def handle_edited_task(self, new_task):
+        print("handle_edited_task")
+        pass
 
     def handle_deleted_task(self, task_uuid):
+        print("handle_deleted_task")
         self.task_widgets.delete(task_uuid)
-        self.reload_signal.emit()
 
     def handle_imported_tasks(self):
-        # clear the task widgets
-        self.task_widgets.clear()
-
-        # add the new tasks
-        task_widgets = self.database_client.get_all_tasks()
-        self.task_widgets.add(task_widgets)
-
+        print("handle_imported_tasks")
         # emit the reload signal
         self.reload_signal.emit()
 
     def handle_cleared_tasks(self):
-        self.task_widgets.clear()
+        print("handle_cleared_tasks")
         self.reload_signal.emit()
 
 
@@ -240,31 +259,14 @@ class Main_Window(QMainWindow):
         # connect buttons
         self.addButton.clicked.connect(self.add_edit_task)
         self.tasks_widget.add_task_signal.connect(self.add_edit_task)
-        self.shared_state.database_client.added_task.connect(self.add_connections)
-        self.shared_state.database_client.imported_tasks.connect(self.add_connections)
 
         # Change the cursor to a pointer when hovering over the button
         self.addButton.setCursor(Qt.CursorShape.PointingHandCursor)
         # Position the button in the top right corner
         self.addButton.setGeometry(self.width() - 80, 20, 50, 50)
-        self.tmpConnections = []
 
-    def add_connections(self):
-        # Disconnect all previous connections
-        for connection in self.tmpConnections:
-            try:
-                connection.disconnect()
-            except TypeError:
-                pass
-            self.tmpConnections.remove(connection)
-
-        # Connect each task_widget and save a reference
-        for task_widget in (
-            self.shared_state.task_widgets.complete
-            + self.shared_state.task_widgets.incomplete
-        ):
-            task_widget.edit_task_signal.connect(self.add_edit_task)
-            self.tmpConnections.append(task_widget.edit_task_signal)
+        # add connections
+        self.shared_state.add_edit_task_signal.connect(self.add_edit_task)
 
     def resizeEvent(self, event):
         # Update the position of the button when the window is resized

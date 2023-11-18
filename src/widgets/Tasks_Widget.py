@@ -136,6 +136,8 @@ class Task_Widget(QWidget):
             self.label.setText(self.task.description)
 
     def emit_edit_task_signal(self):
+        print("emitting edit task signal")
+        print(id(self))
         self.edit_task_signal.emit(self.task.uuid)
 
     def toggle_complete(self, state):
@@ -170,6 +172,21 @@ class Tasks_Widget(QWidget):
 
         # update the tasks when tasks are changed
         self.shared_state.reload_signal.connect(self.reload_tasks)
+
+        # delete task widget when task is deleted
+        self.shared_state.database_client.deleted_task.connect(
+            lambda task_uuid: self.delete_task_widget(task_uuid)
+        )
+
+        # insert task widget when task is added
+        self.shared_state.database_client.added_task.connect(
+            lambda task: self.insert_task(task)
+        )
+
+        # update task widget when task is edited
+        self.shared_state.database_client.edited_task.connect(
+            lambda new_task: self.edit_task(new_task)
+        )
 
         # load more tasks when the scroll bar reaches the top
         self.tab_widget.currentWidget().verticalScrollBar().valueChanged.connect(
@@ -221,6 +238,56 @@ class Tasks_Widget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(self.tab_widget)
 
+    def edit_task(self, new_task):
+        for layout in [
+            self.content_widget_complete.layout(),
+            self.content_widget_incomplete.layout(),
+        ]:
+            for i in range(layout.count()):
+                task_widget = layout.itemAt(i).widget()
+                if task_widget and task_widget.task.uuid == new_task.uuid:
+                    task_widget.task = new_task
+                    return
+
+    def delete_task_widget(self, task_uuid):
+        for layout in [
+            self.content_widget_complete.layout(),
+            self.content_widget_incomplete.layout(),
+        ]:
+            for i in range(layout.count()):
+                task_widget = layout.itemAt(i).widget()
+                if task_widget and task_widget.task.uuid == task_uuid:
+                    layout.removeWidget(
+                        task_widget
+                    )  # Remove the widget from the layout
+                    task_widget.hide()  # Hide the widget
+                    task_widget.deleteLater()  # Schedule the widget for deletion
+                    return
+
+    def insert_task(self, task):
+        task_widget = Task_Widget(task, self.shared_state)
+        layout = (
+            self.content_widget_complete.layout()
+            if task.complete
+            else self.content_widget_incomplete.layout()
+        )
+
+        # Find the correct index to insert the new task
+        index = 0
+        for i in range(layout.count()):
+            existing_task_widget = layout.itemAt(i).widget()
+            if (
+                existing_task_widget
+                and existing_task_widget.task.due_date > task.due_date
+            ):
+                break
+            index += 1
+
+        layout.insertWidget(index, task_widget)
+
+        # add to shared state
+        self.shared_state.task_widgets.add(task_widget)
+
     def load_more_tasks(self, all_tabs=False):
         tasks = []
         if all_tabs:
@@ -240,14 +307,17 @@ class Tasks_Widget(QWidget):
             )
             current_tab.lazy_offset += len(tasks)
 
-        for task in tasks:
-            task_widget = Task_Widget(task, self.shared_state)
+        task_widgets = [Task_Widget(task, self.shared_state) for task in tasks]
+        for task_widget in task_widgets:
             layout = (
                 self.content_widget_complete.layout()
-                if task.complete
+                if task_widget.task.complete
                 else self.content_widget_incomplete.layout()
             )
             layout.insertWidget(0, task_widget)
+
+        # update shared state with new widgets
+        self.shared_state.task_widgets.add(task_widgets)
 
     def scroll_to_bottom(self):
         self.scroll_area_complete.verticalScrollBar().setValue(
@@ -272,11 +342,20 @@ class Tasks_Widget(QWidget):
             value
             <= self.tab_widget.currentWidget().verticalScrollBar().maximum() * 0.05
         ):
-            total_tasks = self.shared_state.database_client.count_tasks()
-            loaded_widgets_count = (
-                self.content_widget_complete.layout().count()
-                + self.content_widget_incomplete.layout().count()
-            )
+            # Check the current tab and use the appropriate list for the count
+            if (
+                self.tab_widget.currentIndex() == 0
+            ):  # Assuming the "Complete" tab is at index 0
+                loaded_widgets_count = len(self.shared_state.task_widgets.complete)
+                total_tasks = self.shared_state.database_client.count_tasks(
+                    complete=True
+                )
+            else:  # Assuming the "Incomplete" tab is at index 1
+                loaded_widgets_count = len(self.shared_state.task_widgets.incomplete)
+                total_tasks = self.shared_state.database_client.count_tasks(
+                    complete=False
+                )
+
             if loaded_widgets_count < total_tasks:
                 # Save the current maximum value of the scrollbar
                 old_max = self.tab_widget.currentWidget().verticalScrollBar().maximum()

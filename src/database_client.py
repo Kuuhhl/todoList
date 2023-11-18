@@ -9,11 +9,12 @@ from task import Task
 
 class DatabaseClient(QObject):
     # Signals
-    added_task = pyqtSignal(str)
+    added_task = pyqtSignal(object)
     imported_tasks = pyqtSignal()
-    edited_task = pyqtSignal(str)
+    edited_task = pyqtSignal(object)
     deleted_task = pyqtSignal(str)
     cleared_tasks = pyqtSignal()
+    loaded_tasks = pyqtSignal(list)
 
     def __init__(self, key, db_name):
         super().__init__()
@@ -76,7 +77,9 @@ class DatabaseClient(QObject):
             params = (int(complete), limit, offset)
 
         self.cur.execute(query, params)
-        return [Task(*row) for row in self.cur.fetchall()]
+        res = [Task(*row) for row in self.cur.fetchall()]
+        self.loaded_tasks.emit(res)
+        return res
 
     def add_task(self, new_task):
         self.cur.execute(
@@ -90,7 +93,7 @@ class DatabaseClient(QObject):
             ),
         )
         self.conn.commit()
-        self.added_task.emit(new_task.uuid)
+        self.added_task.emit(new_task)
 
     def edit_task(self, edited_task):
         self.cur.execute(
@@ -104,7 +107,7 @@ class DatabaseClient(QObject):
             ),
         )
         self.conn.commit()
-        self.edited_task.emit(edited_task.uuid)
+        self.edited_task.emit(edited_task)
 
     def delete_task(self, task_uuid):
         self.cur.execute("delete from todo where uuid=?", (task_uuid,))

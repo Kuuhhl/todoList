@@ -128,9 +128,7 @@ class Edit_Task_Widget(QWidget):
             self.new_task.image_uri = image_uri
 
             # Edit the task
-            self.shared_state.database_client.edit_task(
-                task_uuid=self.new_task.uuid, new_task=self.new_task
-            )
+            self.shared_state.database_client.edit_task(edited_task=self.new_task)
         else:
             # Create a new task
             task = Task(
