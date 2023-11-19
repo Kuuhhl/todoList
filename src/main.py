@@ -1,6 +1,7 @@
 import sys
 from widgets.TasksWidget import TasksWidget
 from widgets.EditTaskWidget import EditTaskWidget
+from widgets.AboutDialog import AboutDialog
 import os
 from pysqlcipher3.dbapi2 import DatabaseError
 from database_client import DatabaseClient
@@ -332,7 +333,7 @@ class MainWindow(QMainWindow):
             self.shared_state.database_client.clear_all()
 
     def about(self, s):
-        About_Dialog().exec()
+        AboutDialog().exec()
 
     def add_edit_task(self, task_uuid=None):
         self.edit_task_widget.task_done.connect(self.task_done)

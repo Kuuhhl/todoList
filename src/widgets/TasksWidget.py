@@ -237,29 +237,38 @@ class TasksWidget(QWidget):
         if self.tab_widget.currentIndex() == 0:
             self.tab_widget.setTabText(
                 1,
-                f"To Do ({total_incomplete_tasks} Tasks)",
+                f"To Do ({self._format_task_count(total_incomplete_tasks)})",
             )
             if num_complete_tasks_loaded < total_complete_tasks:
                 self.tab_widget.setTabText(
                     0,
-                    f"Finished ({num_complete_tasks_loaded}/{total_complete_tasks} Tasks loaded)",
+                    f"Finished ({num_complete_tasks_loaded}/{self._format_task_count(total_complete_tasks)} loaded)",
                 )
             else:
                 self.tab_widget.setTabText(
-                    0, f"Finished ({total_complete_tasks} Tasks)"
+                    0, f"Finished ({self._format_task_count(total_complete_tasks)})"
                 )
         elif self.tab_widget.currentIndex() == 1:
-            self.tab_widget.setTabText(0, f"Finished ({total_complete_tasks} Tasks)")
+            self.tab_widget.setTabText(
+                0, f"Finished ({self._format_task_count(total_complete_tasks)})"
+            )
             if num_incomplete_tasks_loaded < total_incomplete_tasks:
                 self.tab_widget.setTabText(
                     1,
-                    f"To Do ({num_incomplete_tasks_loaded}/{total_incomplete_tasks} Tasks loaded)",
+                    f"To Do ({num_incomplete_tasks_loaded}/{self._format_task_count(total_incomplete_tasks)} loaded)",
                 )
             else:
                 self.tab_widget.setTabText(
-                    1,
-                    f"To Do ({total_incomplete_tasks} Tasks)",
+                    1, f"To Do ({self._format_task_count(total_incomplete_tasks)})"
                 )
+
+    def _format_task_count(self, count):
+        if count == 0:
+            return "no Tasks"
+        elif count == 1:
+            return "1 Task"
+        else:
+            return f"{count} Tasks"
 
     def edit_task(self, new_task):
         for layout in [
