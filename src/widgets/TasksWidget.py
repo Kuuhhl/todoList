@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 )
 
 
-class Task_Widget(QWidget):
+class TaskWidget(QWidget):
     edit_task_signal = pyqtSignal(str)
 
     def __init__(
@@ -147,7 +147,7 @@ class Task_Widget(QWidget):
             self.shared_state.database_client.delete_task(self.task.uuid)
 
 
-class Tasks_Widget(QWidget):
+class TasksWidget(QWidget):
     add_task_signal = pyqtSignal()
 
     def __init__(self, shared_state):
@@ -297,7 +297,7 @@ class Tasks_Widget(QWidget):
                     return
 
     def insert_task(self, task):
-        task_widget = Task_Widget(task, self.shared_state)
+        task_widget = TaskWidget(task, self.shared_state)
         layout = (
             self.content_widget_complete.layout()
             if task.complete
@@ -346,7 +346,7 @@ class Tasks_Widget(QWidget):
             )
             current_tab.lazy_offset += len(tasks)
 
-        task_widgets = [Task_Widget(task, self.shared_state) for task in tasks]
+        task_widgets = [TaskWidget(task, self.shared_state) for task in tasks]
         for task_widget in task_widgets:
             layout = (
                 self.content_widget_complete.layout()

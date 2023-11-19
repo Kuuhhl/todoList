@@ -1,16 +1,14 @@
 import sys
+from widgets.TasksWidget import TasksWidget
+from widgets.EditTaskWidget import EditTaskWidget
 import os
 from pysqlcipher3.dbapi2 import DatabaseError
 from database_client import DatabaseClient
-from widgets.Edit_Task_Widget import Edit_Task_Widget
-from widgets.Tasks_Widget import Tasks_Widget, Task_Widget
-from widgets.About_Dialog import About_Dialog
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, QObject, pyqtSignal
 from PyQt6.QtWidgets import (
     QLineEdit,
     QInputDialog,
-    QProgressDialog,
     QPushButton,
     QMessageBox,
     QApplication,
@@ -21,7 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 
-class Task_Widgets(QObject):
+class TaskWidgets(QObject):
     edit_task_signal = pyqtSignal(str)
 
     def __init__(self):
@@ -75,7 +73,7 @@ class Task_Widgets(QObject):
         self.incomplete.clear()
 
 
-class Shared_State(QObject):
+class SharedState(QObject):
     reload_signal = pyqtSignal()
     add_edit_task_signal = pyqtSignal(str)
 
@@ -84,7 +82,7 @@ class Shared_State(QObject):
         self.database_client = database_client
 
         # represents the currently loaded task widgets
-        self.task_widgets = Task_Widgets()
+        self.task_widgets = TaskWidgets()
 
         # connect signals from database
         self.database_client.added_task.connect(self.handle_added_task)
@@ -133,7 +131,7 @@ class Shared_State(QObject):
         self.reload_signal.emit()
 
 
-class Password_Dialog(QDialog):
+class PasswordDialog(QDialog):
     def __init__(self, db_name):
         super().__init__()
         self.db_name = db_name
@@ -187,14 +185,14 @@ class Password_Dialog(QDialog):
                 )
 
 
-class Main_Window(QMainWindow):
+class MainWindow(QMainWindow):
     def __init__(self, shared_state):
         super().__init__()
         self.shared_state = shared_state
         self.setWindowTitle("Todo App")
 
-        self.tasks_widget = Tasks_Widget(self.shared_state)
-        self.edit_task_widget = Edit_Task_Widget(self.shared_state)
+        self.tasks_widget = TasksWidget(self.shared_state)
+        self.edit_task_widget = EditTaskWidget(self.shared_state)
         self.setCentralWidget(self.tasks_widget)
 
         self.stacked_widget = QStackedWidget()
@@ -356,15 +354,15 @@ app = QApplication(sys.argv)
 
 # ask for password
 db_name = "tasks.db"
-password_dialog = Password_Dialog(db_name)
+password_dialog = PasswordDialog(db_name)
 database_client = password_dialog.database_client
 
 # setup shared state
-shared_state = Shared_State(database_client)
+shared_state = SharedState(database_client)
 
 
 # start main window
-window = Main_Window(shared_state)
+window = MainWindow(shared_state)
 window.resize(800, 600)
 
 

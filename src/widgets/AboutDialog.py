@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QApplication, QPushButton
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QDesktopServices, QFont
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
 
-class About_Dialog(QDialog):
+class AboutDialog(QDialog):
     def __init__(self):
         super().__init__()
 
@@ -41,5 +41,5 @@ class About_Dialog(QDialog):
 
 if __name__ == "__main__":
     app = QApplication([])
-    dialog = About_Dialog()
+    dialog = AboutDialog()
     dialog.exec()

@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import copy
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -22,7 +21,7 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt, QDate, pyqtSignal
 
 
-class Edit_Task_Widget(QWidget):
+class EditTaskWidget(QWidget):
     task_done = pyqtSignal()
 
     def __init__(self, shared_state):
