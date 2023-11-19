@@ -8,7 +8,7 @@ from task import Task
 class DatabaseClient(QObject):
     # Signals
     added_task = pyqtSignal(object)
-    imported_tasks = pyqtSignal()
+    imported_tasks = pyqtSignal(int)
     edited_task = pyqtSignal(object)
     deleted_task = pyqtSignal(str)
     cleared_tasks = pyqtSignal()
@@ -36,6 +36,10 @@ class DatabaseClient(QObject):
         cur.execute(
             "create table if not exists todo (uuid text primary key, image_uri text, task_desc text, due_date text, complete integer)"
         )
+        cur.execute(
+            "CREATE INDEX IF NOT EXISTS idx_todo_complete_due_date ON todo (complete, due_date)"
+        )
+
         return conn, cur
 
     def get_all_tasks(self):
@@ -119,41 +123,33 @@ class DatabaseClient(QObject):
 
     def import_from_file(self, file_path):
         with open(file_path, "r") as f:
-            try:
-                tasks = json.loads(f.read())
-            except json.JSONDecodeError as exc:
-                raise Exception("Invalid JSON file") from exc
+            tasks = json.load(f)
 
-        # Prepare the tasks for insertion
         task_objects = [
-            Task(
-                uuid_=task.get("uuid", None),
-                image_uri=task.get("image_uri", None),
-                description=task.get("description", None),
-                due_date=task.get("due_date", None),
-                complete=task.get("complete", None),
+            (
+                task.get("uuid", None),
+                task.get("image_uri", None),
+                task.get("description", None),
+                task.get("due_date", None),
+                int(task.get("complete", None)),
             )
             for task in tasks
         ]
 
-        tasks_to_insert = [
-            (
-                task.uuid,
-                task.image_uri,
-                task.description,
-                task.due_date,
-                int(task.complete),
-            )
-            for task in task_objects
-        ]
+        self.conn.execute("BEGIN TRANSACTION")
 
-        # Insert the tasks into the database
-        self.cur.executemany(
-            "INSERT INTO todo (uuid, image_uri, task_desc, due_date, complete) VALUES (?, ?, ?, ?, ?)",
-            tasks_to_insert,
-        )
-        self.conn.commit()
-        self.imported_tasks.emit()
+        try:
+            self.cur.executemany(
+                "INSERT INTO todo (uuid, image_uri, task_desc, due_date, complete) VALUES (?, ?, ?, ?, ?)",
+                task_objects,
+            )
+        except sqlite3.Error as e:
+            self.conn.rollback()
+            print(f"An error occurred: {e}")
+        else:
+            self.conn.commit()
+
+        self.imported_tasks.emit(len(tasks))
 
     def export_to_file(self, file_path):
         tasks = self.get_all_tasks()

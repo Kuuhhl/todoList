@@ -118,10 +118,23 @@ class Shared_State(QObject):
         print("handle_deleted_task")
         self.task_widgets.delete(task_uuid)
 
-    def handle_imported_tasks(self):
+    def handle_imported_tasks(self, num_tasks):
         print("handle_imported_tasks")
         # emit the reload signal
         self.reload_signal.emit()
+
+        if num_tasks == 1:
+            QMessageBox.information(
+                self.parent(),
+                "Import Tasks",
+                f"Task imported successfully.",
+            )
+        else:
+            QMessageBox.information(
+                self.parent(),
+                "Import Tasks",
+                f"{num_tasks} Tasks imported successfully.",
+            )
 
     def handle_cleared_tasks(self):
         print("handle_cleared_tasks")
@@ -277,19 +290,22 @@ class Main_Window(QMainWindow):
             self, "Import Tasks", "", "JSON Files (*.json)"
         )
         if file_path:
-            try:
-                task_num_before = self.shared_state.database_client.count_tasks()
-                self.shared_state.database_client.import_from_file(file_path)
-                QTimer.singleShot(
-                    0,
-                    lambda: QMessageBox.information(
+            # warn user if the file is very large
+            if os.path.getsize(file_path) > 1000000:
+                if (
+                    QMessageBox.question(
                         self,
                         "Import Tasks",
-                        f"{self.shared_state.database_client.count_tasks() - task_num_before} Tasks imported successfully.",
-                    ),
-                )
+                        "The file you are importing is very large. This may take a while and the UI might become unresponsive until everything is loaded. Do you want to continue?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    )
+                    == QMessageBox.StandardButton.No
+                ):
+                    return
+            try:
+                task_num_before = self.shared_state.database_client.count_tasks()
 
-                return
+                self.shared_state.database_client.import_from_file(file_path)
             except Exception as e:
                 QMessageBox.critical(
                     self, "Import Tasks", f"Failed to import tasks: {e}"

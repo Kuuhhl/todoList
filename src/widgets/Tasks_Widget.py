@@ -106,6 +106,7 @@ class Task_Widget(QWidget):
         else:
             self.due_badge.hide()
 
+        print(self.task.image_uri)
         if self.task.image_uri != "" and os.path.exists(self.task.image_uri):
             image = QPixmap(self.task.image_uri)
             image = image.scaled(
@@ -170,11 +171,6 @@ class Tasks_Widget(QWidget):
             lambda task: self.insert_task(task)
         )
 
-        # update task widget when task is edited
-        self.shared_state.database_client.edited_task.connect(
-            lambda new_task: self.edit_task(new_task)
-        )
-
         # load more tasks when the scroll bar reaches the top
         self.tab_widget.currentWidget().verticalScrollBar().valueChanged.connect(
             self.check_scrollbar
@@ -207,9 +203,9 @@ class Tasks_Widget(QWidget):
 
         # lazy loading variables
         self.scroll_area_complete.lazy_offset = 0
-        self.scroll_area_complete.lazy_limit = 20
+        self.scroll_area_complete.lazy_limit = 100
         self.scroll_area_incomplete.lazy_offset = 0
-        self.scroll_area_incomplete.lazy_limit = 20
+        self.scroll_area_incomplete.lazy_limit = 100
 
         # Add the scroll areas to the tab widget
         self.tab_widget.addTab(self.scroll_area_complete, "Finished")
@@ -239,47 +235,32 @@ class Tasks_Widget(QWidget):
         if self.tab_widget.currentIndex() == 0:
             self.tab_widget.setTabText(
                 1,
-                f"To Do ({total_incomplete_tasks} Task)"
-                if total_incomplete_tasks == 1
-                else f"To Do ({total_incomplete_tasks} Tasks)",
+                f"To Do ({total_incomplete_tasks} Tasks)",
             )
             if num_complete_tasks_loaded < total_complete_tasks:
                 self.tab_widget.setTabText(
                     0,
-                    f"Finished ({num_complete_tasks_loaded}/{total_complete_tasks} Task loaded)"
-                    if total_complete_tasks == 1
-                    else f"Finished ({num_complete_tasks_loaded}/{total_complete_tasks} Tasks loaded)",
+                    f"Finished ({num_complete_tasks_loaded}/{total_complete_tasks} Tasks loaded)",
                 )
             else:
                 self.tab_widget.setTabText(
-                    0,
-                    f"Finished ({total_complete_tasks} Task)"
-                    if total_complete_tasks == 1
-                    else f"Finished ({total_complete_tasks} Tasks)",
+                    0, f"Finished ({total_complete_tasks} Tasks)"
                 )
         elif self.tab_widget.currentIndex() == 1:
-            self.tab_widget.setTabText(
-                0,
-                f"Finished ({total_complete_tasks} Task)"
-                if total_complete_tasks == 1
-                else f"Finished ({total_complete_tasks} Tasks)",
-            )
+            self.tab_widget.setTabText(0, f"Finished ({total_complete_tasks} Tasks)")
             if num_incomplete_tasks_loaded < total_incomplete_tasks:
                 self.tab_widget.setTabText(
                     1,
-                    f"To Do ({num_incomplete_tasks_loaded}/{total_incomplete_tasks} Task loaded)"
-                    if total_incomplete_tasks == 1
-                    else f"To Do ({num_incomplete_tasks_loaded}/{total_incomplete_tasks} Tasks loaded)",
+                    f"To Do ({num_incomplete_tasks_loaded}/{total_incomplete_tasks} Tasks loaded)",
                 )
             else:
                 self.tab_widget.setTabText(
                     1,
-                    f"To Do ({total_incomplete_tasks} Task)"
-                    if total_incomplete_tasks == 1
-                    else f"To Do ({total_incomplete_tasks} Tasks)",
+                    f"To Do ({total_incomplete_tasks} Tasks)",
                 )
 
     def edit_task(self, new_task):
+        print("edit_task")
         for layout in [
             self.content_widget_complete.layout(),
             self.content_widget_incomplete.layout(),
@@ -315,6 +296,7 @@ class Tasks_Widget(QWidget):
                     return
 
     def insert_task(self, task):
+        print("insert task")
         task_widget = Task_Widget(task, self.shared_state)
         layout = (
             self.content_widget_complete.layout()
@@ -431,6 +413,7 @@ class Tasks_Widget(QWidget):
                 )
 
     def reload_tasks(self):
+        print("reload_tasks")
         # reset the lazy loading variables
         self.scroll_area_complete.lazy_offset = 0
         self.scroll_area_incomplete.lazy_offset = 0
