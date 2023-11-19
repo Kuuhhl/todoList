@@ -53,6 +53,8 @@ class DatabaseClient(QObject):
     def get_task(self, task_uuid):
         self.cur.execute("select * from todo where uuid=?", (task_uuid,))
         task = self.cur.fetchone()
+        if task is None:
+            return None
         return Task(
             task[0],
             task[1],

@@ -1,8 +1,8 @@
 import sys
+import os
 from widgets.TasksWidget import TasksWidget
 from widgets.EditTaskWidget import EditTaskWidget
 from widgets.AboutDialog import AboutDialog
-import os
 from pysqlcipher3.dbapi2 import DatabaseError
 from database_client import DatabaseClient
 from PyQt6.QtGui import QAction, QIcon
@@ -60,7 +60,7 @@ class TaskWidgets(QObject):
 
     def delete(self, task_uuid):
         for task_list in [self.complete, self.incomplete]:
-            for task_widget in task_list:
+            for task_widget in task_list[:]:
                 if task_widget.task.uuid == task_uuid:
                     try:
                         task_widget.edit_task_signal.disconnect()
