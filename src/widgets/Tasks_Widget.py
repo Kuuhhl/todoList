@@ -98,7 +98,10 @@ class Task_Widget(QWidget):
     def task(self, value):
         self._task = value
 
+        self.checkbox.blockSignals(True)
         self.checkbox.setChecked(self.task.complete)
+        self.checkbox.blockSignals(False)
+
         self.due_date_label.setText(self.task.due_date)
 
         if datetime.strptime(self.task.due_date, "%Y-%m-%d") < datetime.now():
@@ -106,7 +109,6 @@ class Task_Widget(QWidget):
         else:
             self.due_badge.hide()
 
-        print(self.task.image_uri)
         if self.task.image_uri != "" and os.path.exists(self.task.image_uri):
             image = QPixmap(self.task.image_uri)
             image = image.scaled(
@@ -260,7 +262,6 @@ class Tasks_Widget(QWidget):
                 )
 
     def edit_task(self, new_task):
-        print("edit_task")
         for layout in [
             self.content_widget_complete.layout(),
             self.content_widget_incomplete.layout(),
@@ -296,7 +297,6 @@ class Tasks_Widget(QWidget):
                     return
 
     def insert_task(self, task):
-        print("insert task")
         task_widget = Task_Widget(task, self.shared_state)
         layout = (
             self.content_widget_complete.layout()
@@ -413,7 +413,6 @@ class Tasks_Widget(QWidget):
                 )
 
     def reload_tasks(self):
-        print("reload_tasks")
         # reset the lazy loading variables
         self.scroll_area_complete.lazy_offset = 0
         self.scroll_area_incomplete.lazy_offset = 0

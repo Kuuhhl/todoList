@@ -30,7 +30,6 @@ class Task_Widgets(QObject):
         self.incomplete = []
 
     def forward_edit_task_signal(self, task_uuid):
-        print("forwarding from task widgets")
         self.edit_task_signal.emit(task_uuid)
 
     def add(self, task_widgets):
@@ -99,27 +98,21 @@ class Shared_State(QObject):
         self.task_widgets.edit_task_signal.connect(self.forward_edit_signal)
 
     def forward_edit_signal(self, task_uuid):
-        print("forwarfing from shared state")
         self.add_edit_task_signal.emit(task_uuid)
 
     def handle_loaded_tasks(self, tasks):
-        print("handle_loaded_tasks")
         pass
 
     def handle_added_task(self, task):
-        print("handle_added_task")
         pass
 
     def handle_edited_task(self, new_task):
-        print("handle_edited_task")
         self.reload_signal.emit()
 
     def handle_deleted_task(self, task_uuid):
-        print("handle_deleted_task")
         self.task_widgets.delete(task_uuid)
 
     def handle_imported_tasks(self, num_tasks):
-        print("handle_imported_tasks")
         # emit the reload signal
         self.reload_signal.emit()
 
@@ -137,7 +130,6 @@ class Shared_State(QObject):
             )
 
     def handle_cleared_tasks(self):
-        print("handle_cleared_tasks")
         self.reload_signal.emit()
 
 
