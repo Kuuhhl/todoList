@@ -6,7 +6,7 @@ from widgets.Edit_Task_Widget import Edit_Task_Widget
 from widgets.Tasks_Widget import Tasks_Widget, Task_Widget
 from widgets.About_Dialog import About_Dialog
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtCore import Qt, QObject, pyqtSignal
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer
 from PyQt6.QtWidgets import (
     QLineEdit,
     QInputDialog,
@@ -280,11 +280,15 @@ class Main_Window(QMainWindow):
             try:
                 task_num_before = self.shared_state.database_client.count_tasks()
                 self.shared_state.database_client.import_from_file(file_path)
-                QMessageBox.information(
-                    self,
-                    "Import Tasks",
-                    f"{self.shared_state.database_client.count_tasks()-task_num_before} Tasks imported successfully.",
+                QTimer.singleShot(
+                    0,
+                    lambda: QMessageBox.information(
+                        self,
+                        "Import Tasks",
+                        f"{self.shared_state.database_client.count_tasks() - task_num_before} Tasks imported successfully.",
+                    ),
                 )
+
                 return
             except Exception as e:
                 QMessageBox.critical(

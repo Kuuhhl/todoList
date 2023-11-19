@@ -222,6 +222,63 @@ class Tasks_Widget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(self.tab_widget)
 
+    def update_tab_labels(self):
+        # count the number of loaded tasks in each category
+        num_complete_tasks_loaded = len(self.shared_state.task_widgets.complete)
+        num_incomplete_tasks_loaded = len(self.shared_state.task_widgets.incomplete)
+
+        # get the total number of tasks in each category
+        total_complete_tasks = self.shared_state.database_client.count_tasks(
+            complete=True
+        )
+        total_incomplete_tasks = self.shared_state.database_client.count_tasks(
+            complete=False
+        )
+
+        # update the tab text
+        if self.tab_widget.currentIndex() == 0:
+            self.tab_widget.setTabText(
+                1,
+                f"To Do ({total_incomplete_tasks} Task)"
+                if total_incomplete_tasks == 1
+                else f"To Do ({total_incomplete_tasks} Tasks)",
+            )
+            if num_complete_tasks_loaded < total_complete_tasks:
+                self.tab_widget.setTabText(
+                    0,
+                    f"Finished ({num_complete_tasks_loaded}/{total_complete_tasks} Task loaded)"
+                    if total_complete_tasks == 1
+                    else f"Finished ({num_complete_tasks_loaded}/{total_complete_tasks} Tasks loaded)",
+                )
+            else:
+                self.tab_widget.setTabText(
+                    0,
+                    f"Finished ({total_complete_tasks} Task)"
+                    if total_complete_tasks == 1
+                    else f"Finished ({total_complete_tasks} Tasks)",
+                )
+        elif self.tab_widget.currentIndex() == 1:
+            self.tab_widget.setTabText(
+                0,
+                f"Finished ({total_complete_tasks} Task)"
+                if total_complete_tasks == 1
+                else f"Finished ({total_complete_tasks} Tasks)",
+            )
+            if num_incomplete_tasks_loaded < total_incomplete_tasks:
+                self.tab_widget.setTabText(
+                    1,
+                    f"To Do ({num_incomplete_tasks_loaded}/{total_incomplete_tasks} Task loaded)"
+                    if total_incomplete_tasks == 1
+                    else f"To Do ({num_incomplete_tasks_loaded}/{total_incomplete_tasks} Tasks loaded)",
+                )
+            else:
+                self.tab_widget.setTabText(
+                    1,
+                    f"To Do ({total_incomplete_tasks} Task)"
+                    if total_incomplete_tasks == 1
+                    else f"To Do ({total_incomplete_tasks} Tasks)",
+                )
+
     def edit_task(self, new_task):
         for layout in [
             self.content_widget_complete.layout(),
@@ -253,6 +310,8 @@ class Tasks_Widget(QWidget):
                     )  # Remove the widget from the layout
                     task_widget.hide()  # Hide the widget
                     task_widget.deleteLater()  # Schedule the widget for deletion
+
+                    self.update_tab_labels()
                     return
 
     def insert_task(self, task):
@@ -278,6 +337,7 @@ class Tasks_Widget(QWidget):
 
         # add to shared state
         self.shared_state.task_widgets.add(task_widget)
+        self.update_tab_labels()
 
     def load_more_tasks(self, all_tabs=False):
         tasks = []
@@ -315,6 +375,7 @@ class Tasks_Widget(QWidget):
 
         # update shared state with new widgets
         self.shared_state.task_widgets.add(task_widgets)
+        self.update_tab_labels()
 
     def scroll_to_bottom(self):
         self.scroll_area_complete.verticalScrollBar().setValue(
@@ -384,3 +445,5 @@ class Tasks_Widget(QWidget):
 
         # scroll to bottom in both tabs
         self.scroll_to_bottom()
+
+        self.update_tab_labels()
