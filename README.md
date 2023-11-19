@@ -12,6 +12,12 @@
     <p align="center">Manage your tasks before they manage you.</p>
 </p>
 
+## Screenshot
+
+<div style="display: flex; justify-content: center;">
+    <img src="screenshot.png" width="500"/>
+</div>
+
 ## Installation on Windows
 
 1. Download the [latest release](https://github.com/Kuuhhl/todoList/releases/latest).
