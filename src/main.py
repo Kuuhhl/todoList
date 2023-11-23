@@ -186,20 +186,6 @@ class MainWindow(QMainWindow):
 
         # Create a round button with a "+" sign
         self.addButton = QPushButton("+", self)
-        self.addButton.setStyleSheet(
-            """
-        QPushButton {
-            border-radius: 10px;
-            font-size: 20px;
-            width: 50px;
-            height: 50px;
-            border: 2px solid white;
-        }
-        QPushButton:hover {
-            border-radius: 15px;
-        }
-        """
-        )
         # connect buttons
         self.addButton.clicked.connect(self.add_edit_task)
         self.tasks_widget.add_task_signal.connect(self.add_edit_task)
