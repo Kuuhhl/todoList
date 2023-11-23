@@ -1,6 +1,6 @@
 import json
 import os
-from pysqlcipher3 import dbapi2 as sqlite3
+import sqlite3
 from PyQt6.QtCore import pyqtSignal, QObject
 from task import Task
 
@@ -14,24 +14,14 @@ class DatabaseClient(QObject):
     cleared_tasks = pyqtSignal()
     loaded_tasks = pyqtSignal(list)
 
-    def __init__(self, key, db_name):
+    def __init__(self, db_name):
         super().__init__()
         self.db_name = db_name
-        self.key = key
         self.conn, self.cur = self.connect_db()
 
     def connect_db(self):
-        if os.path.exists(self.db_name):
-            try:
-                conn = sqlite3.connect(self.db_name)
-                conn.execute(f"PRAGMA key = '{self.key}';")
-                cur = conn.cursor()
-            except sqlite3.DatabaseError as exc:
-                raise (sqlite3.DatabaseError("Incorrect encryption key")) from exc
-        else:
-            conn = sqlite3.connect(self.db_name)
-            conn.execute(f"PRAGMA key = '{self.key}';")
-            cur = conn.cursor()
+        conn = sqlite3.connect(self.db_name)
+        cur = conn.cursor()
 
         cur.execute(
             "create table if not exists todo (uuid text primary key, image_uri text, task_desc text, due_date text, complete integer)"
