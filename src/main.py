@@ -1,7 +1,7 @@
 import sys
 import os
 from widgets.TasksWidget import TasksWidget
-from widgets.EditTaskWidget import EditTaskWidget
+from widgets.ConfigureTaskWidget import EditTaskWidget, AddTaskWidget
 from widgets.AboutDialog import AboutDialog
 from database_client import DatabaseClient
 from PyQt6.QtGui import QAction, QIcon
@@ -138,12 +138,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Todo App")
 
         self.tasks_widget = TasksWidget(self.shared_state)
-        self.edit_task_widget = EditTaskWidget(self.shared_state)
         self.setCentralWidget(self.tasks_widget)
 
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.addWidget(self.tasks_widget)
-        self.stacked_widget.addWidget(self.edit_task_widget)
 
         self.setCentralWidget(self.stacked_widget)
 
@@ -191,8 +189,6 @@ class MainWindow(QMainWindow):
         self.addButton.setStyleSheet(
             """
         QPushButton {
-            background-color: #333;
-            color: white;
             border-radius: 25px;
             font-size: 20px;
             width: 50px;
@@ -281,19 +277,27 @@ class MainWindow(QMainWindow):
         AboutDialog().exec()
 
     def add_edit_task(self, task_uuid=None):
-        self.edit_task_widget.task_done.connect(self.task_done)
-        self.stacked_widget.setCurrentWidget(self.edit_task_widget)
-
         if task_uuid:
-            self.edit_task_widget.edit_task(task_uuid)
+            # get task from database
+            task = self.shared_state.database_client.get_task(task_uuid)
+
+            self.configure_task_widget = EditTaskWidget(self.shared_state, task)
         else:
-            self.edit_task_widget.create_task()
+            self.configure_task_widget = AddTaskWidget(self.shared_state)
+
+        self.stacked_widget.addWidget(self.configure_task_widget)
+        self.stacked_widget.setCurrentWidget(self.configure_task_widget)
+        self.configure_task_widget.task_done.connect(self.task_done)
 
         self.addButton.hide()
 
     def task_done(self):
         self.stacked_widget.setCurrentWidget(self.tasks_widget)
         self.addButton.show()
+
+        # remove edit task widget from stacked widget
+        self.configure_task_widget.deleteLater()
+        self.configure_task_widget = None
 
 
 app = QApplication(sys.argv)
