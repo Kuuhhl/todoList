@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['src/main.py'],
-    pathex=[],
+    ['main.py'],
+    pathex=['src'],
     binaries=[],
-    datas=[('icon.png', '.'), ('src/task.py', '.'), ('src/database_client.py', '.'), ('src/widgets', './widgets')],
+    datas=[('../icon.png', '.'), ('task.py', '.'), ('database_client.py', '.'), ('widgets', './widgets')],
     hiddenimports=['uuid', 'json', 'sqlite3'],
     hookspath=[],
     runtime_hooks=[],
@@ -33,5 +33,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icon.png'],
+    icon=['../icon.ico'],
 )
