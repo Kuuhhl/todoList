@@ -22,7 +22,6 @@
 
 1. Download the [latest release](https://github.com/Kuuhhl/todoList/releases/latest).
 2. Run the `.exe`-file.
-3. On the first run, specify an encryption key for the database.
 
 ## Developing
 

@@ -186,6 +186,7 @@ class MainWindow(QMainWindow):
 
         # Create a round button with a "+" sign
         self.addButton = QPushButton("+", self)
+
         # connect buttons
         self.addButton.clicked.connect(self.add_edit_task)
         self.tasks_widget.add_task_signal.connect(self.add_edit_task)
@@ -208,7 +209,7 @@ class MainWindow(QMainWindow):
         )
         if file_path:
             # warn user if the file is very large
-            if os.path.getsize(file_path) > 1000000:
+            if os.path.getsize(file_path) > 10000:
                 if (
                     QMessageBox.question(
                         self,

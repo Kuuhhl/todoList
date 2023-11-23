@@ -205,9 +205,9 @@ class TasksWidget(QWidget):
 
         # lazy loading variables
         self.scroll_area_complete.lazy_offset = 0
-        self.scroll_area_complete.lazy_limit = 100
+        self.scroll_area_complete.lazy_limit = 30
         self.scroll_area_incomplete.lazy_offset = 0
-        self.scroll_area_incomplete.lazy_limit = 100
+        self.scroll_area_incomplete.lazy_limit = 30
 
         # Add the scroll areas to the tab widget
         self.tab_widget.addTab(self.scroll_area_complete, "Finished")
