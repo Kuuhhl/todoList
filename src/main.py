@@ -189,17 +189,16 @@ class MainWindow(QMainWindow):
         self.addButton.setStyleSheet(
             """
         QPushButton {
-            border-radius: 25px;
+            border-radius: 10px;
             font-size: 20px;
             width: 50px;
             height: 50px;
             border: 2px solid white;
         }
         QPushButton:hover {
-            background-color: #555;
-            color: yellow;
+            border-radius: 15px;
         }
-    """
+        """
         )
         # connect buttons
         self.addButton.clicked.connect(self.add_edit_task)
