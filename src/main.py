@@ -3,7 +3,6 @@ import os
 from widgets.TasksWidget import TasksWidget
 from widgets.EditTaskWidget import EditTaskWidget
 from widgets.AboutDialog import AboutDialog
-from pysqlcipher3.dbapi2 import DatabaseError
 from database_client import DatabaseClient
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt, QObject, pyqtSignal
@@ -130,60 +129,6 @@ class SharedState(QObject):
 
     def handle_cleared_tasks(self):
         self.reload_signal.emit()
-
-
-class PasswordDialog(QDialog):
-    def __init__(self, db_name):
-        super().__init__()
-        self.db_name = db_name
-        if os.path.exists(self.db_name):
-            while True:
-                key, ok = QInputDialog.getText(
-                    self,
-                    "Enter Encryption Key",
-                    "Enter the encryption key for the database:",
-                    echo=QLineEdit.EchoMode.Password,
-                )
-                if not ok:
-                    sys.exit()
-                try:
-                    self.database_client = DatabaseClient(key, self.db_name)
-                    break
-                except DatabaseError:
-                    QMessageBox.critical(
-                        self, "Error", "Incorrect encryption key. Please try again."
-                    )
-        else:
-            while True:
-                key, ok = QInputDialog.getText(
-                    self,
-                    "Enter Encryption Key",
-                    "Enter an new encryption key for the database:",
-                    echo=QLineEdit.EchoMode.Password,
-                )
-                if not ok:
-                    sys.exit()
-                if len(key) < 1:
-                    QMessageBox.critical(
-                        self,
-                        "Error",
-                        "Encryption key cannot be empty. Please try again.",
-                    )
-                    continue
-                key2, ok = QInputDialog.getText(
-                    self,
-                    "Confirm Encryption Key",
-                    "Confirm the encryption key for the database:",
-                    echo=QLineEdit.EchoMode.Password,
-                )
-                if not ok:
-                    sys.exit()
-                if key == key2:
-                    self.database_client = DatabaseClient(key, db_name)
-                    break
-                QMessageBox.critical(
-                    self, "Error", "Encryption keys do not match. Please try again."
-                )
 
 
 class MainWindow(QMainWindow):
@@ -355,8 +300,7 @@ app = QApplication(sys.argv)
 
 # ask for password
 db_name = "tasks.db"
-password_dialog = PasswordDialog(db_name)
-database_client = password_dialog.database_client
+database_client = DatabaseClient(db_name)
 
 # setup shared state
 shared_state = SharedState(database_client)
