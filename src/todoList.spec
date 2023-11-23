@@ -8,7 +8,6 @@ a = Analysis(
     datas=[('icon.png', '.'), ('src/task.py', '.'), ('src/database_client.py', '.'), ('src/widgets', './widgets')],
     hiddenimports=['uuid', 'json', 'sqlite3'],
     hookspath=[],
-    hooksconfig={},
     runtime_hooks=[],
     excludes=[],
     noarchive=False,
