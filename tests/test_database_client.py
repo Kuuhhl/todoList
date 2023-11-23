@@ -2,7 +2,7 @@ import sys
 import tempfile
 import os
 import unittest
-from pysqlcipher3 import dbapi2 as sqlite3
+import sqlite3
 import json
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
@@ -13,8 +13,7 @@ from database_client import DatabaseClient, Task
 class TestDatabaseClient(unittest.TestCase):
     def setUp(self):
         self.db_name = ":memory:"
-        self.key = "encryption_key"
-        self.client = DatabaseClient(self.key, self.db_name)
+        self.client = DatabaseClient(self.db_name)
 
     def test_connect_db(self):
         conn, cur = self.client.connect_db()
@@ -26,18 +25,6 @@ class TestDatabaseClient(unittest.TestCase):
         self.assertIsInstance(tasks, list)
         for task in tasks:
             self.assertIsInstance(task, Task)
-
-    def test_access_db_with_wrong_credentials(self):
-        db_path = os.path.join(tempfile.gettempdir(), "test_tmp.db")
-
-        client = DatabaseClient("right_key", db_path)
-
-        client.key = "wrong_key"
-
-        with self.assertRaises(sqlite3.DatabaseError):
-            client.connect_db()
-
-        os.remove(db_path)
 
     def test_get_task_when_task_is_in_database(self):
         # Setup: Add a task to the database
