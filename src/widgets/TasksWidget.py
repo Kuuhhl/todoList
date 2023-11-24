@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import datetime
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QPalette, QBrush, QColor, QTransform
@@ -199,7 +200,15 @@ class TasksWidget(QWidget):
         # all tasks finished message
         self.all_tasks_finished_message = QWidget()
         self.all_tasks_finished_message.setLayout(QVBoxLayout())
-        pixmap = QPixmap("no_tasks_message.png")
+
+        if os.path.exists("../assets/no_tasks_message.png"):
+            pixmap = QPixmap("../assets/no_tasks_message.png")
+        else:
+            bundle_dir = getattr(
+                sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__))
+            )
+            pixmap = QPixmap(os.path.join(bundle_dir, "assets", "no_tasks_message.png"))
+
         pixmap = pixmap.scaled(
             self.size(),
             Qt.AspectRatioMode.KeepAspectRatio,

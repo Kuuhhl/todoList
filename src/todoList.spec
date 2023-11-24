@@ -3,9 +3,9 @@
 
 a = Analysis(
     ['main.py'],
-    pathex=['src'],
+    pathex=[],
     binaries=[],
-    datas=[('../assets/icon.png', '.'), ('../assets/no_tasks_message.png', '.'), ('task.py', '.'), ('database_client.py', '.'), ('widgets', './widgets')],
+    datas=[('../assets/icon.png', './assets'), ('../assets/no_tasks_message.png', './assets'), ('task.py', '.'), ('database_client.py', '.'), ('widgets', './widgets')],
     hiddenimports=['uuid', 'json', 'sqlite3'],
     hookspath=[],
     runtime_hooks=[],

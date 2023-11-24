@@ -309,9 +309,12 @@ shared_state = SharedState(database_client)
 window = MainWindow(shared_state)
 window.resize(800, 600)
 
-
 # Set the window icon
-icon_path = "icon.png"
+if os.path.exists("assets/icon.png"):
+    icon_path = "assets/icon.png"
+else:
+    bundle_dir = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
+    icon_path = os.path.join(bundle_dir, "assets", "icon.png")
 if os.path.exists(icon_path):
     window.setWindowIcon(QIcon(icon_path))
 else:
