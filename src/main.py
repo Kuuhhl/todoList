@@ -317,7 +317,6 @@ if os.path.exists(icon_path):
 else:
     print(f"Icon file {icon_path} does not exist.")
 
-
 window.show()
 
 app.exec()

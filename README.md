@@ -7,7 +7,7 @@
 <br />
 
 <p align="center">
-    <img src="icon.png" alt="Logo" width="120" height="120" style="border-radius:15%;">
+    <img src="assets/icon.png" alt="Logo" width="120" height="120" style="border-radius:15%;">
     <h3 align="center">todoList</h3>
     <p align="center">Manage your tasks before they manage you.</p>
 </p>

@@ -1,9 +1,10 @@
 import os
 from datetime import datetime
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtWidgets import QPushButton
+from PyQt6.QtGui import QPixmap, QPalette, QBrush, QColor, QTransform
 from PyQt6.QtWidgets import (
+    QPushButton,
+    QStackedWidget,
     QScrollArea,
     QMessageBox,
     QVBoxLayout,
@@ -189,10 +190,29 @@ class TasksWidget(QWidget):
         self.content_widget_complete = QWidget()
         self.content_widget_incomplete = QWidget()
 
-        if not self.content_widget_complete.layout():
-            self.content_widget_complete.setLayout(QVBoxLayout())
-        if not self.content_widget_incomplete.layout():
-            self.content_widget_incomplete.setLayout(QVBoxLayout())
+        self.content_widget_complete.setLayout(QVBoxLayout())
+        self.content_widget_incomplete.setLayout(QVBoxLayout())
+
+        # Create a QStackedWidget
+        self.stacked_widget_incomplete = QStackedWidget()
+
+        # all tasks finished message
+        self.all_tasks_finished_message = QWidget()
+        self.all_tasks_finished_message.setLayout(QVBoxLayout())
+        pixmap = QPixmap("no_tasks_message.png")
+        pixmap = pixmap.scaled(
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        self.complete_image_label = QLabel(self.all_tasks_finished_message)
+        self.complete_image_label.setPixmap(pixmap)
+        self.complete_image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.all_tasks_finished_message.layout().addWidget(self.complete_image_label)
+
+        # Add the widgets to the stacked widget
+        self.stacked_widget_incomplete.addWidget(self.content_widget_incomplete)
+        self.stacked_widget_incomplete.addWidget(self.all_tasks_finished_message)
 
         # Create a QScrollArea and set its properties
         self.scroll_area_complete = QScrollArea()
@@ -201,7 +221,7 @@ class TasksWidget(QWidget):
 
         self.scroll_area_incomplete = QScrollArea()
         self.scroll_area_incomplete.setWidgetResizable(True)
-        self.scroll_area_incomplete.setWidget(self.content_widget_incomplete)
+        self.scroll_area_incomplete.setWidget(self.stacked_widget_incomplete)
 
         # lazy loading variables
         self.scroll_area_complete.lazy_offset = 0
@@ -220,7 +240,17 @@ class TasksWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.addWidget(self.tab_widget)
 
-    def update_tab_labels(self):
+    def toggle_completed_image(self, visible):
+        if visible:
+            self.stacked_widget_incomplete.setCurrentWidget(
+                self.all_tasks_finished_message
+            )
+        else:
+            self.stacked_widget_incomplete.setCurrentWidget(
+                self.content_widget_incomplete
+            )
+
+    def update_tab_labels_and_completed_image(self):
         # count the number of loaded tasks in each category
         num_complete_tasks_loaded = len(self.shared_state.task_widgets.complete)
         num_incomplete_tasks_loaded = len(self.shared_state.task_widgets.incomplete)
@@ -262,13 +292,18 @@ class TasksWidget(QWidget):
                     1, f"To Do ({self._format_task_count(total_incomplete_tasks)})"
                 )
 
+        # update the no tasks message
+        if num_incomplete_tasks_loaded == 0:
+            self.toggle_completed_image(True)
+        else:
+            self.toggle_completed_image(False)
+
     def _format_task_count(self, count):
         if count == 0:
             return "no Tasks"
-        elif count == 1:
+        if count == 1:
             return "1 Task"
-        else:
-            return f"{count} Tasks"
+        return f"{count} Tasks"
 
     def edit_task(self, new_task):
         # Choose the correct layout based on the task's completion status
@@ -303,7 +338,7 @@ class TasksWidget(QWidget):
                     task_widget.hide()  # Hide the widget
                     task_widget.deleteLater()  # Schedule the widget for deletion
 
-                    self.update_tab_labels()
+                    self.update_tab_labels_and_completed_image()
                     return
 
     def insert_task(self, task):
@@ -329,7 +364,7 @@ class TasksWidget(QWidget):
 
         # add to shared state
         self.shared_state.task_widgets.add(task_widget)
-        self.update_tab_labels()
+        self.update_tab_labels_and_completed_image()
 
     def load_more_tasks(self, all_tabs=False):
         tasks = []
@@ -372,7 +407,7 @@ class TasksWidget(QWidget):
 
         # update shared state with new widgets
         self.shared_state.task_widgets.add(task_widgets)
-        self.update_tab_labels()
+        self.update_tab_labels_and_completed_image()
 
     def scroll_to_bottom(self):
         self.scroll_area_complete.verticalScrollBar().setValue(
@@ -442,5 +477,3 @@ class TasksWidget(QWidget):
 
         # scroll to bottom in both tabs
         self.scroll_to_bottom()
-
-        self.update_tab_labels()
