@@ -26,8 +26,8 @@
 ## Developing
 
 1. Clone the repository.
-2. Install project dependencies with `pip install -r requirements.txt`
-3. Run the application using `python main.py`.
+2. Install project dependencies with `pip install -r src/requirements.txt`
+3. Run the application using `python src/main.py`.
 
 ## Testing
 
