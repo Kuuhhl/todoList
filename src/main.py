@@ -267,6 +267,11 @@ class MainWindow(QMainWindow):
             # get task from database
             task = self.shared_state.database_client.get_task(task_uuid)
 
+            if not task:
+                QMessageBox.critical(
+                    self, "Edit Task", "Failed to get task from database."
+                )
+                return
             self.configure_task_widget = EditTaskWidget(self.shared_state, task)
         else:
             self.configure_task_widget = AddTaskWidget(self.shared_state)

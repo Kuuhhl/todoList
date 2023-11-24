@@ -1,5 +1,5 @@
 import json
-import os
+import uuid
 import sqlite3
 from PyQt6.QtCore import pyqtSignal, QObject
 from task import Task
@@ -119,7 +119,7 @@ class DatabaseClient(QObject):
 
         task_objects = [
             (
-                task.get("uuid", None),
+                str(uuid.uuid4()),
                 task.get("image_uri", None),
                 task.get("description", None),
                 task.get("due_date", None),

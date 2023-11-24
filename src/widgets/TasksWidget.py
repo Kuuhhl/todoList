@@ -271,22 +271,23 @@ class TasksWidget(QWidget):
             return f"{count} Tasks"
 
     def edit_task(self, new_task):
-        for layout in [
-            self.content_widget_complete.layout(),
-            self.content_widget_incomplete.layout(),
-        ]:
-            for i in range(layout.count()):
-                task_widget = layout.itemAt(i).widget()
-                if task_widget and task_widget.task.uuid == new_task.uuid:
-                    complete_toggled = False
-                    if task_widget.task.complete != new_task.complete:
-                        complete_toggled = True
-                    task_widget.task = new_task
-                    if complete_toggled:
-                        self.delete_task_widget(task_widget)
-                        self.shared_state.task_widgets.delete(task_widget.task.uuid)
-                        self.insert_task(new_task)
-                    return
+        # Choose the correct layout based on the task's completion status
+        layout = (
+            self.content_widget_complete.layout()
+            if new_task.complete
+            else self.content_widget_incomplete.layout()
+        )
+
+        for i in range(layout.count()):
+            task_widget = layout.itemAt(i).widget()
+            if task_widget and task_widget.task.uuid == new_task.uuid:
+                complete_toggled = task_widget.task.complete != new_task.complete
+                task_widget.task = new_task
+                if complete_toggled:
+                    self.delete_task_widget(task_widget)
+                    self.shared_state.task_widgets.delete(task_widget.task.uuid)
+                    self.insert_task(new_task)
+                return
 
     def delete_task_widget(self, task_uuid):
         for layout in [
@@ -356,13 +357,18 @@ class TasksWidget(QWidget):
             current_tab.lazy_offset += len(tasks)
 
         task_widgets = [TaskWidget(task, self.shared_state) for task in tasks]
-        for task_widget in task_widgets:
-            layout = (
-                self.content_widget_complete.layout()
-                if task_widget.task.complete
-                else self.content_widget_incomplete.layout()
-            )
-            layout.insertWidget(0, task_widget)
+        complete_widgets = [widget for widget in task_widgets if widget.task.complete]
+        incomplete_widgets = [
+            widget for widget in task_widgets if not widget.task.complete
+        ]
+
+        complete_layout = self.content_widget_complete.layout()
+        for widget in complete_widgets:
+            complete_layout.insertWidget(0, widget)
+
+        incomplete_layout = self.content_widget_incomplete.layout()
+        for widget in incomplete_widgets:
+            incomplete_layout.insertWidget(0, widget)
 
         # update shared state with new widgets
         self.shared_state.task_widgets.add(task_widgets)
