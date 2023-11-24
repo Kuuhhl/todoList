@@ -234,7 +234,7 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Export Tasks",
-            f"todo_export_{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}.json",
+            f"todo_export_{datetime.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')}.json",
             "JSON Files (*.json)",
         )
         if file_path:
