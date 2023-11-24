@@ -1,5 +1,6 @@
 import sys
 import os
+import datetime
 from widgets.TasksWidget import TasksWidget
 from widgets.ConfigureTaskWidget import EditTaskWidget, AddTaskWidget
 from widgets.AboutDialog import AboutDialog
@@ -231,7 +232,10 @@ class MainWindow(QMainWindow):
 
     def export_tasks(self, s):
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Export Tasks", "", "JSON Files (*.json)"
+            self,
+            "Export Tasks",
+            f"todo_export_{datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')}.json",
+            "JSON Files (*.json)",
         )
         if file_path:
             try:
